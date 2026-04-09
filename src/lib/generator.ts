@@ -1,7 +1,7 @@
 import { FormState } from "../types";
 
 export function generateHTML(state: FormState): string {
-  const { config, payments, fields, productMode, specificVariantIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons } = state;
+  const { config, payments, fields, productMode, specificVariantIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons, submitButtonText, submitButtonBgColor, submitButtonTextColor } = state;
 
   const fieldsHTML = fields.map(field => {
     if (field.type === 'location') {
@@ -233,8 +233,8 @@ export function generateHTML(state: FormState): string {
   .summary-row:last-of-type { border-bottom: none; }
   .summary-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 600; color: var(--text); margin-top: 10px; padding-top: 10px; border-top: 1.5px solid var(--gray-border); }
 
-  .btn-order { width: 100%; padding: 15px; background: var(--green); color: #fff; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.15s, transform 0.1s; box-shadow: 0 2px 8px rgba(29,158,117,0.25); margin-bottom: 2rem; }
-  .btn-order:hover { background: var(--green-dark); }
+  .btn-order { width: 100%; padding: 15px; background: ${submitButtonBgColor}; color: ${submitButtonTextColor}; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.15s, transform 0.1s; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+  .btn-order:hover { opacity: 0.9; }
   .btn-order:active { transform: scale(0.99); }
   .btn-order:disabled { background: #9CA3AF; cursor: not-allowed; box-shadow: none; }
 
@@ -322,7 +322,7 @@ export function generateHTML(state: FormState): string {
   </div>
 
   <button class="btn-order" id="btn-order" onclick="submitOrder()">
-    Pesan Sekarang
+    ${submitButtonText}
   </button>
 
 </div>

@@ -44,6 +44,9 @@ export const DEFAULT_STATE: FormState = {
   afterOrderAction: 'whatsapp',
   customRedirectUrl: "",
   showQtyButtons: true,
+  submitButtonText: "Pesan Sekarang",
+  submitButtonBgColor: "#1D9E75",
+  submitButtonTextColor: "#ffffff",
   fields: AVAILABLE_FIELDS.filter(f => f.id !== 'f-note'),
   payments: [...AVAILABLE_PAYMENTS]
 };

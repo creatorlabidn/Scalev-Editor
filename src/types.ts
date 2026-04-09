@@ -42,4 +42,7 @@ export interface FormState {
   afterOrderAction: 'whatsapp' | 'order_link' | 'custom_link';
   customRedirectUrl?: string;
   showQtyButtons: boolean;
+  submitButtonText: string;
+  submitButtonBgColor: string;
+  submitButtonTextColor: string;
 }

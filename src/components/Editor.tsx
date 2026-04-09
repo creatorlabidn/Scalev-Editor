@@ -365,10 +365,13 @@ export default function Editor() {
             >
               <SectionHeader title="Product Display" description="Choose which products to show on your form." />
               
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">General Product Settings</p>
+              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-8">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between border-b border-gray-50 pb-4">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">General Settings</p>
+                  </div>
+                  
+                  <div className="max-w-md">
                     <InputGroup 
                       label="Product Section Title" 
                       value={state.productSectionTitle} 
@@ -376,7 +379,8 @@ export default function Editor() {
                       placeholder="e.g. Pilih Isi" 
                     />
                   </div>
-                  <div className="grid grid-cols-1 gap-4">
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Toggle 
                       label="Auto-select First Product" 
                       description="Automatically select the first item on load"
@@ -389,52 +393,58 @@ export default function Editor() {
                       checked={state.showQtyButtons} 
                       onChange={v => setState(prev => ({ ...prev, showQtyButtons: v }))} 
                     />
+                    <Toggle 
+                      label="Allow Multiple Selection" 
+                      description="Let customers pick more than one product"
+                      checked={state.allowMultiSelect} 
+                      onChange={v => setState(prev => ({ ...prev, allowMultiSelect: v }))} 
+                    />
+                    <Toggle 
+                      label="Show Promo Badge" 
+                      description="Show notification"
+                      checked={state.showPromoBadge} 
+                      onChange={v => setState(prev => ({ ...prev, showPromoBadge: v }))} 
+                    />
                   </div>
+
+                  <AnimatePresence>
+                    {state.showPromoBadge && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="p-5 bg-emerald-50/50 rounded-xl border border-emerald-100 space-y-4"
+                      >
+                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Promo Notification Settings</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <InputGroup 
+                            label="Upsell Text (Qty = 1)" 
+                            value={state.promoUpsellText} 
+                            onChange={v => setState(prev => ({ ...prev, promoUpsellText: v }))} 
+                            placeholder="e.g. Tambah 1 lagi untuk dapat Gratis 1 Botol" 
+                          />
+                          <InputGroup 
+                            label="Success Text (Qty > 1)" 
+                            value={state.promoSuccessText} 
+                            onChange={v => setState(prev => ({ ...prev, promoSuccessText: v }))} 
+                            placeholder="e.g. Yeeyy... Kamu dapat Gratis 1 Botol" 
+                          />
+                          <div className="md:col-span-2">
+                            <InputGroup 
+                              label="Bonus Item Text (Summary)" 
+                              value={state.promoBonusText} 
+                              onChange={v => setState(prev => ({ ...prev, promoBonusText: v }))} 
+                              placeholder="e.g. Gratis 1 Botol 🎁" 
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Toggle 
-                    label="Allow Multiple Selection" 
-                    description="Let customers pick more than one product"
-                    checked={state.allowMultiSelect} 
-                    onChange={v => setState(prev => ({ ...prev, allowMultiSelect: v }))} 
-                  />
-                  <Toggle 
-                    label="Show Promo Badge" 
-                    description="Show notification"
-                    checked={state.showPromoBadge} 
-                    onChange={v => setState(prev => ({ ...prev, showPromoBadge: v }))} 
-                  />
-                  {state.showPromoBadge && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="space-y-4 pt-2"
-                    >
-                      <InputGroup 
-                        label="Upsell Text (Qty = 1)" 
-                        value={state.promoUpsellText} 
-                        onChange={v => setState(prev => ({ ...prev, promoUpsellText: v }))} 
-                        placeholder="e.g. Tambah 1 lagi untuk dapat Gratis 1 Botol" 
-                      />
-                      <InputGroup 
-                        label="Success Text (Qty > 1)" 
-                        value={state.promoSuccessText} 
-                        onChange={v => setState(prev => ({ ...prev, promoSuccessText: v }))} 
-                        placeholder="e.g. Yeeyy... Kamu dapat Gratis 1 Botol" 
-                      />
-                      <InputGroup 
-                        label="Bonus Item Text (Summary)" 
-                        value={state.promoBonusText} 
-                        onChange={v => setState(prev => ({ ...prev, promoBonusText: v }))} 
-                        placeholder="e.g. Gratis 1 Botol 🎁" 
-                      />
-                    </motion.div>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t border-gray-100 space-y-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Product Selection Mode</p>
+                <div className="pt-6 border-t border-gray-100 space-y-4">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Product Selection Mode</p>
                   <div className="flex gap-4">
                     <button 
                       onClick={() => setState(prev => ({ ...prev, productMode: 'all' }))}
@@ -644,18 +654,6 @@ export default function Editor() {
               className="max-w-5xl mx-auto space-y-8"
             >
               <div className="space-y-4">
-                <SectionHeader title="Shipping Settings" description="Configure how shipping works on your form." />
-                <div className="max-w-md">
-                  <Toggle 
-                    label="Enable Shipping Courier" 
-                    description="Allow customers to choose shipping courier"
-                    checked={state.showCourier} 
-                    onChange={v => setState(prev => ({ ...prev, showCourier: v }))} 
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
                 <SectionHeader title="Available Fields" description="Toggle fields to add or remove them from your form." />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {AVAILABLE_FIELDS.map((field, idx) => {
@@ -733,6 +731,68 @@ export default function Editor() {
                       </div>
                     ))
                   )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <SectionHeader title="Shipping Settings" description="Configure how shipping works on your form." />
+                <div className="max-w-md">
+                  <Toggle 
+                    label="Enable Shipping Courier" 
+                    description="Allow customers to choose shipping courier"
+                    checked={state.showCourier} 
+                    onChange={v => setState(prev => ({ ...prev, showCourier: v }))} 
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <SectionHeader title="Button Appearance" description="Customize the appearance and text of your main action button." />
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+                  <InputGroup 
+                    label="Submit Button Text" 
+                    value={state.submitButtonText} 
+                    onChange={v => setState(prev => ({ ...prev, submitButtonText: v }))} 
+                    placeholder="Pesan Sekarang" 
+                  />
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Button Background Color</label>
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="color" 
+                          value={state.submitButtonBgColor} 
+                          onChange={e => setState(prev => ({ ...prev, submitButtonBgColor: e.target.value }))}
+                          className="w-10 h-10 rounded cursor-pointer border-none p-0 bg-transparent"
+                        />
+                        <input 
+                          type="text" 
+                          value={state.submitButtonBgColor} 
+                          onChange={e => setState(prev => ({ ...prev, submitButtonBgColor: e.target.value }))}
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Button Text Color</label>
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="color" 
+                          value={state.submitButtonTextColor} 
+                          onChange={e => setState(prev => ({ ...prev, submitButtonTextColor: e.target.value }))}
+                          className="w-10 h-10 rounded cursor-pointer border-none p-0 bg-transparent"
+                        />
+                        <input 
+                          type="text" 
+                          value={state.submitButtonTextColor} 
+                          onChange={e => setState(prev => ({ ...prev, submitButtonTextColor: e.target.value }))}
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
