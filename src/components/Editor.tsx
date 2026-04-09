@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, Reorder } from 'motion/react';
 import { 
   Settings, 
   Package, 
@@ -18,7 +18,8 @@ import {
   ArrowUp,
   ArrowDown,
   Search,
-  Loader2
+  Loader2,
+  GripVertical
 } from 'lucide-react';
 import { FormState, PaymentMethod, FormField } from '../types';
 import { DEFAULT_STATE, AVAILABLE_PAYMENTS, AVAILABLE_FIELDS } from '../constants';
@@ -585,59 +586,84 @@ export default function Editor() {
                     animate={{ opacity: 1, y: 0 }} 
                     className="pt-6 border-t border-gray-100 space-y-4"
                   >
-                    <SectionHeader title="Selected Variants Order" description="Reorder the products as they will appear on the form." />
+                    <SectionHeader title="Selected Variants Order" description="Drag to reorder or use arrows to move products." />
                     <div className="grid grid-cols-1 gap-2">
-                      {state.specificVariantIds.map((vid, idx) => {
-                        // Find variant info from products list
-                        let variantInfo: any = null;
-                        let parentProduct: any = null;
-                        
-                        for (const p of products) {
-                          const variants = p.variants || p.product_variants || [];
-                          const found = variants.find((v: any) => String(v.unique_id || v.id) === vid);
-                          if (found) {
-                            variantInfo = found;
-                            parentProduct = p;
-                            break;
+                      <Reorder.Group 
+                        axis="y" 
+                        values={state.specificVariantIds} 
+                        onReorder={(newIds) => setState(prev => ({ ...prev, specificVariantIds: newIds }))}
+                        className="space-y-2"
+                      >
+                        {state.specificVariantIds.map((vid, idx) => {
+                          // Find variant info from products list
+                          let variantInfo: any = null;
+                          let parentProduct: any = null;
+                          
+                          for (const p of products) {
+                            const variants = p.variants || p.product_variants || [];
+                            const found = variants.find((v: any) => String(v.unique_id || v.id) === vid);
+                            if (found) {
+                              variantInfo = found;
+                              parentProduct = p;
+                              break;
+                            }
                           }
-                        }
 
-                        if (!variantInfo) return null;
+                          if (!variantInfo) return null;
 
-                        return (
-                          <div key={vid} className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex items-center gap-3 group">
-                            <div className="flex flex-col gap-0.5">
-                              <button 
-                                disabled={idx === 0}
-                                onClick={() => moveVariant(idx, 'up')}
-                                className="p-0.5 hover:bg-white rounded disabled:opacity-20 transition-colors"
-                              >
-                                <ArrowUp className="w-3.5 h-3.5 text-gray-500" />
-                              </button>
-                              <button 
-                                disabled={idx === state.specificVariantIds.length - 1}
-                                onClick={() => moveVariant(idx, 'down')}
-                                className="p-0.5 hover:bg-white rounded disabled:opacity-20 transition-colors"
-                              >
-                                <ArrowDown className="w-3.5 h-3.5 text-gray-500" />
-                              </button>
-                            </div>
-                            <div className="w-8 h-8 bg-white rounded flex items-center justify-center text-emerald-600 font-bold text-xs border border-gray-100">
-                              {idx + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-gray-800 truncate">{parentProduct.name}</p>
-                              <p className="text-[10px] text-gray-500 truncate">{variantInfo.name || 'Default Variant'}</p>
-                            </div>
-                            <button 
-                              onClick={() => toggleVariantSelection(vid)}
-                              className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                          return (
+                            <Reorder.Item 
+                              key={vid} 
+                              value={vid}
+                              className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex items-center gap-3 group cursor-grab active:cursor-grabbing"
                             >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        );
-                      })}
+                              <div className="flex items-center gap-2">
+                                <div className="text-gray-300 group-hover:text-emerald-400 transition-colors">
+                                  <GripVertical className="w-4 h-4" />
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                  <button 
+                                    disabled={idx === 0}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      moveVariant(idx, 'up');
+                                    }}
+                                    className="p-0.5 hover:bg-white rounded disabled:opacity-20 transition-colors"
+                                  >
+                                    <ArrowUp className="w-3.5 h-3.5 text-gray-500" />
+                                  </button>
+                                  <button 
+                                    disabled={idx === state.specificVariantIds.length - 1}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      moveVariant(idx, 'down');
+                                    }}
+                                    className="p-0.5 hover:bg-white rounded disabled:opacity-20 transition-colors"
+                                  >
+                                    <ArrowDown className="w-3.5 h-3.5 text-gray-500" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="w-8 h-8 bg-white rounded flex items-center justify-center text-emerald-600 font-bold text-xs border border-gray-100">
+                                {idx + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-gray-800 truncate">{parentProduct.name}</p>
+                                <p className="text-[10px] text-gray-500 truncate">{variantInfo.name || 'Default Variant'}</p>
+                              </div>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleVariantSelection(vid);
+                                }}
+                                className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </Reorder.Item>
+                          );
+                        })}
+                      </Reorder.Group>
                     </div>
                   </motion.div>
                 )}
@@ -688,48 +714,73 @@ export default function Editor() {
               </div>
 
               <div className="space-y-4">
-                <SectionHeader title="Active Form Fields" description="Reorder the fields by moving them up or down." />
+                <SectionHeader title="Active Form Fields" description="Drag to reorder or use arrows to move fields up and down." />
                 <div className="grid grid-cols-1 gap-3">
                   {state.fields.length === 0 ? (
                     <div className="p-8 border-2 border-dashed border-gray-200 rounded-xl text-center text-gray-400">
                       No fields selected. Choose from available fields above.
                     </div>
                   ) : (
-                    state.fields.map((field, idx) => (
-                      <div key={field.id} className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm flex items-center gap-4 group">
-                        <div className="flex flex-col gap-1">
-                          <button 
-                            disabled={idx === 0}
-                            onClick={() => moveField(idx, 'up')}
-                            className="p-1 hover:bg-gray-100 rounded disabled:opacity-20 transition-colors"
-                          >
-                            <ArrowUp className="w-4 h-4 text-gray-500" />
-                          </button>
-                          <button 
-                            disabled={idx === state.fields.length - 1}
-                            onClick={() => moveField(idx, 'down')}
-                            className="p-1 hover:bg-gray-100 rounded disabled:opacity-20 transition-colors"
-                          >
-                            <ArrowDown className="w-4 h-4 text-gray-500" />
-                          </button>
-                        </div>
-                        <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 font-bold">
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-bold text-gray-900">{field.label}</p>
-                          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                            Type: {field.type} {field.required ? '• Required' : ''}
-                          </p>
-                        </div>
-                        <button 
-                          onClick={() => toggleField(field)}
-                          className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                    <Reorder.Group 
+                      axis="y" 
+                      values={state.fields} 
+                      onReorder={(newFields) => setState(prev => ({ ...prev, fields: newFields }))}
+                      className="space-y-3"
+                    >
+                      {state.fields.map((field, idx) => (
+                        <Reorder.Item 
+                          key={field.id} 
+                          value={field}
+                          className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm flex items-center gap-4 group cursor-grab active:cursor-grabbing"
                         >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    ))
+                          <div className="flex items-center gap-2">
+                            <div className="text-gray-300 group-hover:text-emerald-400 transition-colors">
+                              <GripVertical className="w-5 h-5" />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <button 
+                                disabled={idx === 0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveField(idx, 'up');
+                                }}
+                                className="p-1 hover:bg-gray-100 rounded disabled:opacity-20 transition-colors"
+                              >
+                                <ArrowUp className="w-4 h-4 text-gray-500" />
+                              </button>
+                              <button 
+                                disabled={idx === state.fields.length - 1}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveField(idx, 'down');
+                                }}
+                                className="p-1 hover:bg-gray-100 rounded disabled:opacity-20 transition-colors"
+                              >
+                                <ArrowDown className="w-4 h-4 text-gray-500" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 font-bold">
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-bold text-gray-900">{field.label}</p>
+                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                              Type: {field.type} {field.required ? '• Required' : ''}
+                            </p>
+                          </div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleField(field);
+                            }}
+                            className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </Reorder.Item>
+                      ))}
+                    </Reorder.Group>
                   )}
                 </div>
               </div>
@@ -931,51 +982,76 @@ export default function Editor() {
               </div>
 
               <div className="space-y-4">
-                <SectionHeader title="Active Payment Methods" description="Reorder the payment methods by moving them up or down." />
+                <SectionHeader title="Active Payment Methods" description="Drag to reorder or use arrows to move payment methods." />
                 <div className="grid grid-cols-1 gap-3">
                   {state.payments.length === 0 ? (
                     <div className="p-8 border-2 border-dashed border-gray-200 rounded-xl text-center text-gray-400">
                       No payment methods selected. Choose from available options above.
                     </div>
                   ) : (
-                    state.payments.map((pay, idx) => (
-                      <div key={`${pay.id}-${pay.sub}-${idx}`} className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm flex items-center gap-4 group">
-                        <div className="flex flex-col gap-1">
-                          <button 
-                            disabled={idx === 0}
-                            onClick={() => movePayment(idx, 'up')}
-                            className="p-1 hover:bg-gray-100 rounded disabled:opacity-20 transition-colors"
-                          >
-                            <ArrowUp className="w-4 h-4 text-gray-500" />
-                          </button>
-                          <button 
-                            disabled={idx === state.payments.length - 1}
-                            onClick={() => movePayment(idx, 'down')}
-                            className="p-1 hover:bg-gray-100 rounded disabled:opacity-20 transition-colors"
-                          >
-                            <ArrowDown className="w-4 h-4 text-gray-500" />
-                          </button>
-                        </div>
-                        <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 font-bold">
-                          {idx + 1}
-                        </div>
-                        <div className="w-12 h-8 bg-gray-50 rounded border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                          <img src={pay.logo} alt={pay.label} className="max-w-full max-h-full object-contain p-1" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-bold text-gray-900">{pay.label}</p>
-                          <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                            {pay.badge}
-                          </p>
-                        </div>
-                        <button 
-                          onClick={() => togglePayment(pay)}
-                          className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                    <Reorder.Group 
+                      axis="y" 
+                      values={state.payments} 
+                      onReorder={(newPayments) => setState(prev => ({ ...prev, payments: newPayments }))}
+                      className="space-y-3"
+                    >
+                      {state.payments.map((pay, idx) => (
+                        <Reorder.Item 
+                          key={`${pay.id}-${pay.sub || ''}`} 
+                          value={pay}
+                          className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm flex items-center gap-4 group cursor-grab active:cursor-grabbing"
                         >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    ))
+                          <div className="flex items-center gap-2">
+                            <div className="text-gray-300 group-hover:text-emerald-400 transition-colors">
+                              <GripVertical className="w-5 h-5" />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <button 
+                                disabled={idx === 0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  movePayment(idx, 'up');
+                                }}
+                                className="p-1 hover:bg-gray-100 rounded disabled:opacity-20 transition-colors"
+                              >
+                                <ArrowUp className="w-4 h-4 text-gray-500" />
+                              </button>
+                              <button 
+                                disabled={idx === state.payments.length - 1}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  movePayment(idx, 'down');
+                                }}
+                                className="p-1 hover:bg-gray-100 rounded disabled:opacity-20 transition-colors"
+                              >
+                                <ArrowDown className="w-4 h-4 text-gray-500" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 font-bold">
+                            {idx + 1}
+                          </div>
+                          <div className="w-12 h-8 bg-gray-50 rounded border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <img src={pay.logo} alt={pay.label} className="max-w-full max-h-full object-contain p-1" referrerPolicy="no-referrer" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-bold text-gray-900">{pay.label}</p>
+                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                              {pay.badge}
+                            </p>
+                          </div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePayment(pay);
+                            }}
+                            className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </Reorder.Item>
+                      ))}
+                    </Reorder.Group>
                   )}
                 </div>
               </div>
