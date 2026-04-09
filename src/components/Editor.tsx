@@ -376,6 +376,12 @@ export default function Editor() {
                       checked={state.autoSelectFirst} 
                       onChange={v => setState(prev => ({ ...prev, autoSelectFirst: v }))} 
                     />
+                    <Toggle 
+                      label="Show Quantity Buttons" 
+                      description="Enable customers to adjust product quantity"
+                      checked={state.showQtyButtons} 
+                      onChange={v => setState(prev => ({ ...prev, showQtyButtons: v }))} 
+                    />
                   </div>
                 </div>
 

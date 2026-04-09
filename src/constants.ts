@@ -40,6 +40,7 @@ export const DEFAULT_STATE: FormState = {
   promoSuccessText: "Yeeyy... Kamu dapat Gratis 1 Botol",
   afterOrderAction: 'whatsapp',
   customRedirectUrl: "",
+  showQtyButtons: true,
   fields: AVAILABLE_FIELDS.filter(f => f.id !== 'f-note'),
   payments: [...AVAILABLE_PAYMENTS]
 };

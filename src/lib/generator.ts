@@ -1,7 +1,7 @@
 import { FormState } from "../types";
 
 export function generateHTML(state: FormState): string {
-  const { config, payments, fields, productMode, specificVariantIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, afterOrderAction, customRedirectUrl } = state;
+  const { config, payments, fields, productMode, specificVariantIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, afterOrderAction, customRedirectUrl, showQtyButtons } = state;
 
   const fieldsHTML = fields.map(field => {
     if (field.type === 'location') {
@@ -324,6 +324,7 @@ const CONFIG = {
   SHOW_PROMO_BADGE: ${showPromoBadge},
   PROMO_UPSELL_TEXT: "${promoUpsellText.replace(/"/g, '\\"')}",
   PROMO_SUCCESS_TEXT: "${promoSuccessText.replace(/"/g, '\\"')}",
+  SHOW_QTY_BUTTONS: ${showQtyButtons},
   API_BASE:     "https://api.scalev.id/v2",
 };
 
@@ -456,11 +457,12 @@ function renderVariants() {
         <div class="variant-name">\${v.name}</div>
         <div class="variant-price">\${fmt(v.price)}</div>
       </div>
+      \${CONFIG.SHOW_QTY_BUTTONS ? \`
       <div class="qty-wrap" id="vqty-\${i}" style="display:none" onclick="event.stopPropagation()">
         <button class="qty-btn" onclick="changeQty(\${i},-1)" style="width: 26px !important; height: 26px !important; border-radius: 50% !important; border: 1px solid var(--green-border) !important; background: var(--white) !important; color: var(--green) !important; font-size: 18px !important; font-weight: 500 !important; display: flex !important; align-items: center !important; justify-content: center !important; line-height: 0 !important; padding: 0 !important; font-family: sans-serif !important; cursor: pointer !important; outline: none !important;">-</button>
         <div class="qty-num" id="vqnum-\${i}">1</div>
         <button class="qty-btn" onclick="changeQty(\${i},1)" style="width: 26px !important; height: 26px !important; border-radius: 50% !important; border: 1px solid var(--green-border) !important; background: var(--white) !important; color: var(--green) !important; font-size: 18px !important; font-weight: 500 !important; display: flex !important; align-items: center !important; justify-content: center !important; line-height: 0 !important; padding: 0 !important; font-family: sans-serif !important; cursor: pointer !important; outline: none !important;">+</button>
-      </div>
+      </div>\` : ''}
     </div>
     <div class="variant-notif" id="vnotif-\${i}"></div>
   \`).join("");
@@ -490,12 +492,12 @@ function toggleVariant(i) {
     selectedVariants[i] = 1;
     chk.checked = true;
     card.classList.add("selected");
-    qtyEl.style.display = "flex";
+    if (qtyEl) qtyEl.style.display = "flex";
   } else {
     delete selectedVariants[i];
     chk.checked = false;
     card.classList.remove("selected");
-    qtyEl.style.display = "none";
+    if (qtyEl) qtyEl.style.display = "none";
   }
   updateAllVariantNotifs();
   updateSummary();
@@ -504,7 +506,8 @@ function toggleVariant(i) {
 
 function changeQty(i, delta) {
   selectedVariants[i] = Math.max(1, (selectedVariants[i] || 1) + delta);
-  document.getElementById("vqnum-" + i).textContent = selectedVariants[i];
+  const numEl = document.getElementById("vqnum-" + i);
+  if (numEl) numEl.textContent = selectedVariants[i];
   updateAllVariantNotifs();
   updateSummary();
   refreshCourierIfReady();

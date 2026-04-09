@@ -39,4 +39,5 @@ export interface FormState {
   promoSuccessText: string;
   afterOrderAction: 'whatsapp' | 'order_link' | 'custom_link';
   customRedirectUrl?: string;
+  showQtyButtons: boolean;
 }
