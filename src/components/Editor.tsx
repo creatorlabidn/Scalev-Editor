@@ -350,7 +350,6 @@ export default function Editor() {
 
                 <div className="grid grid-cols-1 gap-6">
                   <InputGroup label="WhatsApp Number" value={state.config.waNumber} onChange={v => updateConfig('waNumber', v)} placeholder="628..." />
-                  <InputGroup label="n8n Webhook URL" value={state.config.n8nWebhook} onChange={v => updateConfig('n8nWebhook', v)} placeholder="https://..." />
                 </div>
               </div>
             </motion.div>
@@ -402,7 +401,7 @@ export default function Editor() {
                   />
                   <Toggle 
                     label="Show Promo Badge" 
-                    description='Show "Gratis 1 Botol" notification'
+                    description="Show notification"
                     checked={state.showPromoBadge} 
                     onChange={v => setState(prev => ({ ...prev, showPromoBadge: v }))} 
                   />
