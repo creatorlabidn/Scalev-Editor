@@ -66,12 +66,15 @@ export function generateHTML(state: FormState): string {
         const weight = variant.weight || variant.variant_weight || product.weight || product.product_weight || 1;
         const variantName = variant.name || variant.variant_name || "";
         const productName = product.name || product.product_name || "";
+        const optionName = [variant.option1_value, variant.option2_value, variant.option3_value].filter(Boolean).join(" / ");
         const displayName = variantName ? (variantName.toLowerCase().includes(productName.toLowerCase()) ? variantName : productName + " - " + variantName) : productName;
 
         orderedVariants.push({
           unique_id:  variant.unique_id || variant.variant_unique_id || "",
           variant_id: variant.id || variant.variant_id || null,
           name:       displayName,
+          product_name: productName,
+          option_name: optionName,
           price:      Number(price),
           weight:     Number(weight),
         });
@@ -88,12 +91,15 @@ export function generateHTML(state: FormState): string {
         const weight = v.weight || v.variant_weight || product.weight || product.product_weight || 1;
         const variantName = v.name || v.variant_name || "";
         const productName = product.name || product.product_name || "";
+        const optionName = [v.option1_value, v.option2_value, v.option3_value].filter(Boolean).join(" / ");
         const displayName = variantName ? (variantName.toLowerCase().includes(productName.toLowerCase()) ? variantName : productName + " - " + variantName) : productName;
 
         allVariants.push({
           unique_id:  v.unique_id || v.variant_unique_id || "",
           variant_id: v.id || v.variant_id || null,
           name:       displayName,
+          product_name: productName,
+          option_name: optionName,
           price:      Number(price),
           weight:     Number(weight),
         });
@@ -139,6 +145,15 @@ export function generateHTML(state: FormState): string {
   .product-load-error { font-size: 13px; color: #DC2626; padding: 12px; text-align: center; background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-sm); }
   .retry-btn { margin-top: 8px; background: none; border: 1px solid #DC2626; color: #DC2626; padding: 6px 14px; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; cursor: pointer; }
   .retry-btn:hover { background: #FEF2F2; }
+
+  .product-group-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-text);
+    margin: 12px 0 6px 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
 
   .variant-item { display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid var(--gray-border); border-radius: var(--radius-sm); margin-bottom: 4px; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--white); }
   .variant-item.selected { border-color: var(--green); background: var(--green-light); border-width: 1.5px; }
@@ -451,11 +466,21 @@ async function loadProductsFromAPI() {
 }
 
 function renderVariants() {
-  document.getElementById("variants-list").innerHTML = VARIANTS.map((v, i) => \`
+  const listEl = document.getElementById("variants-list");
+  let html = "";
+  let lastProduct = "";
+  
+  VARIANTS.forEach((v, i) => {
+    if (v.product_name && v.product_name !== lastProduct) {
+      html += \`<div class="product-group-title">\${v.product_name}</div>\`;
+      lastProduct = v.product_name;
+    }
+    
+    html += \`
     <div class="variant-item" id="vcard-\${i}" onclick="toggleVariant(\${i})">
       <input type="checkbox" id="vchk-\${i}" tabindex="-1" />
       <div class="variant-info">
-        <div class="variant-name">\${v.name}</div>
+        <div class="variant-name">\${v.option_name || v.name}</div>
         <div class="variant-price">\${fmt(v.price)}</div>
       </div>
       \${CONFIG.SHOW_QTY_BUTTONS ? \`
@@ -465,8 +490,10 @@ function renderVariants() {
         <button class="qty-btn" onclick="changeQty(\${i},1)" style="width: 26px !important; height: 26px !important; border-radius: 50% !important; border: 1px solid var(--green-border) !important; background: var(--white) !important; color: var(--green) !important; font-size: 18px !important; font-weight: 500 !important; display: flex !important; align-items: center !important; justify-content: center !important; line-height: 0 !important; padding: 0 !important; font-family: sans-serif !important; cursor: pointer !important; outline: none !important;">+</button>
       </div>\` : ''}
     </div>
-    <div class="variant-notif" id="vnotif-\${i}"></div>
-  \`).join("");
+    <div class="variant-notif" id="vnotif-\${i}"></div>\`;
+  });
+  
+  listEl.innerHTML = html;
 }
 
 function toggleVariant(i) {

@@ -1,5 +1,5 @@
 {
-  "name": "Scalev Form Editor",
-  "description": "A visual tool to generate and edit Scalev-integrated HTML order forms.",
+  "name": "Scalev Form Builder",
+  "description": "A visual tool to generate and build Scalev-integrated HTML order forms.",
   "requestFramePermissions": []
 }

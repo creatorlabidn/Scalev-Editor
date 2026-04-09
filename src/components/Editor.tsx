@@ -210,12 +210,20 @@ export default function Editor() {
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar */}
       <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6 border-bottom border-gray-100">
-          <h1 className="text-xl font-bold text-emerald-600 flex items-center gap-2">
-            <Package className="w-6 h-6" />
-            Scalev Editor
-          </h1>
-          <p className="text-xs text-gray-400 mt-1">Form Builder v1.0</p>
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-gray-900 leading-tight">
+                Scalev Form Builder
+              </h1>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                v1.0 Stable
+              </p>
+            </div>
+          </div>
         </div>
         
         <nav className="flex-1 p-4 space-y-1">
