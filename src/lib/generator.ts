@@ -1,7 +1,7 @@
 import { FormState } from "../types";
 
 export function generateHTML(state: FormState): string {
-  const { config, payments, fields, productMode, specificVariantIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, afterOrderAction, customRedirectUrl, showQtyButtons } = state;
+  const { config, payments, fields, productMode, specificVariantIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons } = state;
 
   const fieldsHTML = fields.map(field => {
     if (field.type === 'location') {
@@ -325,6 +325,7 @@ const CONFIG = {
   PROMO_UPSELL_TEXT: "${promoUpsellText.replace(/"/g, '\\"')}",
   PROMO_SUCCESS_TEXT: "${promoSuccessText.replace(/"/g, '\\"')}",
   SHOW_QTY_BUTTONS: ${showQtyButtons},
+  COD_ALWAYS_WHATSAPP: ${codAlwaysWhatsapp},
   API_BASE:     "https://api.scalev.id/v2",
 };
 
@@ -552,7 +553,7 @@ function updateSummary() {
   }).join("");
 
   if (isFree) {
-    rows += '<div class="summary-row"><span>' + VARIANTS[0].name + ' x1 🎁</span><span style="color:var(--green);font-weight:600;">Gratis</span></div>';
+    rows += '<div class="summary-row"><span>' + "${promoBonusText.replace(/"/g, '\\"')}" + '</span><span style="color:var(--green);font-weight:600;">Gratis</span></div>';
   }
 
   if (selectedCourierIdx !== null && courierList[selectedCourierIdx]) {
@@ -910,12 +911,15 @@ async function submitOrder() {
 
     sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, phone, email);
 
-    if (String(CONFIG.AFTER_ORDER_ACTION).toLowerCase() === 'order_link' && orderLink) {
+    const isCod = pm.id === 'cod';
+    const forceWa = isCod && CONFIG.COD_ALWAYS_WHATSAPP;
+
+    if (!forceWa && String(CONFIG.AFTER_ORDER_ACTION).toLowerCase() === 'order_link' && orderLink) {
       showToast("Order berhasil! Mengalihkan ke halaman pembayaran...", "success");
       setTimeout(() => {
         window.location.href = orderLink;
       }, 1200);
-    } else if (String(CONFIG.AFTER_ORDER_ACTION).toLowerCase() === 'custom_link' && CONFIG.CUSTOM_REDIRECT_URL) {
+    } else if (!forceWa && String(CONFIG.AFTER_ORDER_ACTION).toLowerCase() === 'custom_link' && CONFIG.CUSTOM_REDIRECT_URL) {
       showToast("Order berhasil! Mengalihkan...", "success");
       setTimeout(() => {
         window.location.href = CONFIG.CUSTOM_REDIRECT_URL;

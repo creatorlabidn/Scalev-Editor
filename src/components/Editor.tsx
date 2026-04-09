@@ -416,6 +416,12 @@ export default function Editor() {
                         onChange={v => setState(prev => ({ ...prev, promoSuccessText: v }))} 
                         placeholder="e.g. Yeeyy... Kamu dapat Gratis 1 Botol" 
                       />
+                      <InputGroup 
+                        label="Bonus Item Text (Summary)" 
+                        value={state.promoBonusText} 
+                        onChange={v => setState(prev => ({ ...prev, promoBonusText: v }))} 
+                        placeholder="e.g. Gratis 1 Botol 🎁" 
+                      />
                     </motion.div>
                   )}
                 </div>
@@ -904,6 +910,18 @@ export default function Editor() {
                       </div>
                     ))
                   )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <SectionHeader title="Payment Settings" description="Advanced configuration for payment methods." />
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+                  <Toggle 
+                    label="COD Always Redirect to WhatsApp" 
+                    description="Force COD orders to redirect to WhatsApp regardless of the global Post-Order Action."
+                    checked={state.codAlwaysWhatsapp} 
+                    onChange={v => setState(prev => ({ ...prev, codAlwaysWhatsapp: v }))} 
+                  />
                 </div>
               </div>
             </motion.div>

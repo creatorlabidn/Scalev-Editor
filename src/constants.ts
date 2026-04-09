@@ -10,7 +10,7 @@ export const AVAILABLE_FIELDS: FormField[] = [
 ];
 
 export const AVAILABLE_PAYMENTS: PaymentMethod[] = [
-  { id: "cod",  label: "COD",                         badge: "COD",     color: "#2d9e5f", logo: "https://res.cloudinary.com/dho4tdzhr/image/upload/COD_j4joxw.png" },
+  { id: "cod",  label: "Bayar di tempat (COD)",       badge: "COD",     color: "#2d9e5f", logo: "https://res.cloudinary.com/dho4tdzhr/image/upload/COD_j4joxw.png" },
   { id: "qris", label: "QRIS",                         badge: "QRIS",    color: "#444",    logo: "https://res.cloudinary.com/dho4tdzhr/image/upload/qris_l8lqz7.png" },
   { id: "va",   label: "Bank Mandiri Virtual Account", badge: "MANDIRI", color: "#003f72", logo: "https://res.cloudinary.com/dho4tdzhr/image/upload/Mandiri_xzotjn.png", sub: "MANDIRI" },
   { id: "va",   label: "BNI Virtual Account",          badge: "BNI",     color: "#e85a1a", logo: "https://res.cloudinary.com/dho4tdzhr/image/upload/BNI_w26p0g.png",     sub: "BNI" },
@@ -18,6 +18,7 @@ export const AVAILABLE_PAYMENTS: PaymentMethod[] = [
   { id: "va",   label: "Bank BSI Virtual Account",     badge: "BSI",     color: "#3d9e4a", logo: "https://res.cloudinary.com/dho4tdzhr/image/upload/BSI_pz5xic.png",     sub: "BSI" },
   { id: "va",   label: "Bank Permata Virtual Account", badge: "PERMATA", color: "#c00",    logo: "https://res.cloudinary.com/dho4tdzhr/image/upload/Permata_q3uww2.png",  sub: "PERMATA" },
   { id: "va",   label: "Bank BJB Virtual Account",     badge: "BJB",     color: "#006e4e", logo: "https://res.cloudinary.com/dho4tdzhr/image/upload/BJB_bao2fg.png",     sub: "BJB" },
+  { id: "bank_transfer", label: "Bank Transfer", badge: "TRANSFER", color: "#007bff", logo: "https://res.cloudinary.com/dho4tdzhr/image/upload/Bank_Indi_isysxq.png" },
 ];
 
 export const DEFAULT_STATE: FormState = {
@@ -38,6 +39,8 @@ export const DEFAULT_STATE: FormState = {
   showPromoBadge: true,
   promoUpsellText: "Tambah 1 lagi untuk dapat Gratis 1 Botol",
   promoSuccessText: "Yeeyy... Kamu dapat Gratis 1 Botol",
+  promoBonusText: "Gratis 1 Botol 🎁",
+  codAlwaysWhatsapp: true,
   afterOrderAction: 'whatsapp',
   customRedirectUrl: "",
   showQtyButtons: true,
