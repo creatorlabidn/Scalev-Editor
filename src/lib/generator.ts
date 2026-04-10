@@ -1168,6 +1168,11 @@ async function submitOrder() {
   const locId  = fieldValues['location_id'] || "";
   const note   = fieldValues['f-note'] || "";
 
+  const totalQty = getTotalQty();
+  const isFree = totalQty > 1;
+  const promoText = "${promoBonusText.replace(/"/g, '\\"').replace(/\\/g, '\\\\')}";
+  const finalNote = (isFree && promoText) ? (note ? note + " - " + promoText : promoText) : note;
+
   const pm      = PAYMENT_METHODS[selectedPaymentIdx];
   const courier = showCourier ? courierList[selectedCourierIdx] : null;
   const ongkir   = courier ? (courier.cost || courier.shipping_cost || courier.price || 0) : 0;
@@ -1197,7 +1202,7 @@ async function submitOrder() {
     customer_phone:      phone.startsWith("62") ? phone : "62" + phone,
     customer_email:      email,
     address:             alamat,
-    notes:               note,
+    notes:               finalNote,
     location_id:         parseInt(locId) || null,
     payment_method:      pm.id,
     warehouse_unique_id: warehouseUniqueId,
@@ -1259,7 +1264,7 @@ async function submitOrder() {
     console.log("[Scalev] Action:", CONFIG.AFTER_ORDER_ACTION);
     console.log("[Scalev] Order Link:", orderLink);
 
-    sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, phone, email, note);
+    sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, phone, email, finalNote);
 
     const isCod = pm.id === 'cod';
     const forceWa = isCod && CONFIG.COD_ALWAYS_WHATSAPP;
@@ -1280,8 +1285,9 @@ async function submitOrder() {
       const payLabel = pmSel.sub ? pmSel.badge + " Virtual Account" : pmSel.label;
       const itemLines = Object.keys(selectedVariants).map(i => VARIANTS[i].name + " x" + selectedVariants[i]).join(", ");
       const totalFmt = "Rp " + Math.round(subtotal + ongkir).toLocaleString("id-ID");
+      const notePart = finalNote ? "\\n*Catatan* : " + finalNote : "";
 
-      const waMsg = encodeURIComponent("Halo, saya sudah melakukan pemesanan :\\n*Produk* : " + itemLines + "\\n*Total* : " + totalFmt + "\\n*Pembayaran* : " + payLabel + "\\n\\nAtas nama *" + nama + "*. Mohon segera diproses ya...");
+      const waMsg = encodeURIComponent("Halo, saya sudah melakukan pemesanan :\\n*Produk* : " + itemLines + "\\n*Total* : " + totalFmt + "\\n*Pembayaran* : " + payLabel + notePart + "\\n\\nAtas nama *" + nama + "*. Mohon segera diproses ya...");
 
       setTimeout(() => {
         window.open("https://wa.me/" + CONFIG.WA_NUMBER + "?text=" + waMsg, "_blank");
