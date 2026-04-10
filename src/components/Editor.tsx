@@ -372,7 +372,14 @@ export default function Editor() {
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">General Settings</p>
                   </div>
                   
-                  <div className="max-w-md">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Toggle 
+                      label="Show Product Section" 
+                      description="Display product selection on the form"
+                      checked={state.showProductSection} 
+                      onChange={v => setState(prev => ({ ...prev, showProductSection: v }))} 
+                    />
+                    <div className="opacity-0 pointer-events-none" />
                     <InputGroup 
                       label="Product Section Title" 
                       value={state.productSectionTitle} 

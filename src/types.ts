@@ -45,4 +45,5 @@ export interface FormState {
   submitButtonText: string;
   submitButtonBgColor: string;
   submitButtonTextColor: string;
+  showProductSection: boolean;
 }

@@ -47,6 +47,7 @@ export const DEFAULT_STATE: FormState = {
   submitButtonText: "Pesan Sekarang",
   submitButtonBgColor: "#1D9E75",
   submitButtonTextColor: "#ffffff",
+  showProductSection: true,
   fields: AVAILABLE_FIELDS.filter(f => f.id !== 'f-note'),
   payments: [...AVAILABLE_PAYMENTS]
 };

@@ -1,7 +1,7 @@
 import { FormState } from "../types";
 
 export function generateHTML(state: FormState): string {
-  const { config, payments, fields, productMode, specificVariantIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons, submitButtonText, submitButtonBgColor, submitButtonTextColor } = state;
+  const { config, payments, fields, productMode, specificVariantIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons, submitButtonText, submitButtonBgColor, submitButtonTextColor, showProductSection } = state;
 
   const fieldsHTML = fields.map(field => {
     if (field.type === 'location') {
@@ -155,6 +155,12 @@ export function generateHTML(state: FormState): string {
     letter-spacing: 0.025em;
   }
 
+  .product-card { display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid var(--gray-border); border-radius: var(--radius-sm); margin-bottom: 4px; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--white); }
+  .product-card.selected { border-color: var(--green); background: var(--green-light); border-width: 1.5px; }
+  .product-card input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--green); flex-shrink: 0; pointer-events: none; }
+  
+  .variants-container { margin-left: 12px; border-left: 2px solid var(--gray-border); padding-left: 10px; margin-bottom: 12px; margin-top: 4px; }
+
   .variant-item { display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid var(--gray-border); border-radius: var(--radius-sm); margin-bottom: 4px; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--white); }
   .variant-item.selected { border-color: var(--green); background: var(--green-light); border-width: 1.5px; }
   .variant-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--green); flex-shrink: 0; pointer-events: none; }
@@ -284,6 +290,7 @@ export function generateHTML(state: FormState): string {
 
 <div class="container">
 
+  ${showProductSection ? `
   <div class="card">
     <div class="section-title">${productSectionTitle}</div>
     <div id="variants-list">
@@ -292,7 +299,7 @@ export function generateHTML(state: FormState): string {
       <div class="skeleton skeleton-item"></div>
       <div class="skeleton skeleton-item"></div>
     </div>
-  </div>
+  </div>` : ''}
 
   <div class="card">
     <div class="section-title">Lengkapi Data:</div>
@@ -450,50 +457,188 @@ async function loadProductsFromAPI() {
     ${productsFilterLogic}
 
     if (!VARIANTS.length) {
-      listEl.innerHTML = '<div class="product-load-error">Tidak ada produk tersedia.<br><button class="retry-btn" onclick="loadProductsFromAPI()">Coba Lagi</button></div>';
+      if (listEl) listEl.innerHTML = '<div class="product-load-error">Tidak ada produk tersedia.<br><button class="retry-btn" onclick="loadProductsFromAPI()">Coba Lagi</button></div>';
       return;
     }
 
-    renderVariants();
+    if (listEl) renderVariants();
 
     if (${autoSelectFirst} && VARIANTS.length > 0) {
-      toggleVariant(0);
+      const firstV = VARIANTS[0];
+      // Check if it's in a group
+      const hasMultiple = VARIANTS.filter(v => v.product_name === firstV.product_name).length > 1;
+      if (hasMultiple) {
+        toggleProductGroup(0);
+      } else {
+        toggleVariant(0);
+      }
+    }
+    
+    // If listEl is missing, we still need to update summary if variants are auto-selected
+    if (!listEl) {
+      updateSummary();
+      refreshCourierIfReady();
     }
 
   } catch (e) {
-    listEl.innerHTML = '<div class="product-load-error">Gagal memuat produk: ' + e.message + '<br><button class="retry-btn" onclick="loadProductsFromAPI()">Coba Lagi</button></div>';
+    if (listEl) listEl.innerHTML = '<div class="product-load-error">Gagal memuat produk: ' + e.message + '<br><button class="retry-btn" onclick="loadProductsFromAPI()">Coba Lagi</button></div>';
   }
 }
 
 function renderVariants() {
   const listEl = document.getElementById("variants-list");
   let html = "";
-  let lastProduct = "";
   
+  // Group variants by product
+  const groups = [];
   VARIANTS.forEach((v, i) => {
-    if (v.product_name && v.product_name !== lastProduct) {
-      html += \`<div class="product-group-title">\${v.product_name}</div>\`;
-      lastProduct = v.product_name;
+    let group = groups.find(g => g.name === v.product_name);
+    if (!group) {
+      group = { name: v.product_name, variants: [] };
+      groups.push(group);
     }
-    
-    html += \`
-    <div class="variant-item" id="vcard-\${i}" onclick="toggleVariant(\${i})">
-      <input type="checkbox" id="vchk-\${i}" tabindex="-1" />
-      <div class="variant-info">
-        <div class="variant-name">\${v.option_name || v.name}</div>
-        <div class="variant-price">\${fmt(v.price)}</div>
+    group.variants.push({ ...v, index: i });
+  });
+
+  groups.forEach((group, gIdx) => {
+    if (group.variants.length > 1) {
+      // Product with multiple variants
+      html += \`
+      <div class="product-group-title">\${group.name}</div>
+      <div class="product-card" id="pcard-\${gIdx}" onclick="toggleProductGroup(\${gIdx})">
+        <input type="checkbox" id="pchk-\${gIdx}" tabindex="-1" />
+        <div class="variant-info">
+          <div class="variant-name">\${group.name}</div>
+          <div class="variant-price">Pilih varian...</div>
+        </div>
       </div>
-      \${CONFIG.SHOW_QTY_BUTTONS ? \`
-      <div class="qty-wrap" id="vqty-\${i}" style="display:none" onclick="event.stopPropagation()">
-        <button class="qty-btn" onclick="changeQty(\${i},-1)" style="width: 26px !important; height: 26px !important; border-radius: 50% !important; border: 1px solid var(--green-border) !important; background: var(--white) !important; color: var(--green) !important; font-size: 18px !important; font-weight: 500 !important; display: flex !important; align-items: center !important; justify-content: center !important; line-height: 0 !important; padding: 0 !important; font-family: sans-serif !important; cursor: pointer !important; outline: none !important;">-</button>
-        <div class="qty-num" id="vqnum-\${i}">1</div>
-        <button class="qty-btn" onclick="changeQty(\${i},1)" style="width: 26px !important; height: 26px !important; border-radius: 50% !important; border: 1px solid var(--green-border) !important; background: var(--white) !important; color: var(--green) !important; font-size: 18px !important; font-weight: 500 !important; display: flex !important; align-items: center !important; justify-content: center !important; line-height: 0 !important; padding: 0 !important; font-family: sans-serif !important; cursor: pointer !important; outline: none !important;">+</button>
-      </div>\` : ''}
-    </div>
-    <div class="variant-notif" id="vnotif-\${i}"></div>\`;
+      <div class="variants-container" id="vcont-\${gIdx}" style="display:none">
+        \${group.variants.map(v => \`
+          <div class="variant-item" id="vcard-\${v.index}" onclick="toggleVariant(\${v.index})">
+            <input type="checkbox" id="vchk-\${v.index}" tabindex="-1" />
+            <div class="variant-info">
+              <div class="variant-name">\${v.option_name || v.name}</div>
+              <div class="variant-price">\${fmt(v.price)}</div>
+            </div>
+            \${CONFIG.SHOW_QTY_BUTTONS ? \`
+            <div class="qty-wrap" id="vqty-\${v.index}" style="display:none" onclick="event.stopPropagation()">
+              <button class="qty-btn" onclick="changeQty(\${v.index},-1)" style="width: 26px !important; height: 26px !important; border-radius: 50% !important; border: 1px solid var(--green-border) !important; background: var(--white) !important; color: var(--green) !important; font-size: 18px !important; font-weight: 500 !important; display: flex !important; align-items: center !important; justify-content: center !important; line-height: 0 !important; padding: 0 !important; font-family: sans-serif !important; cursor: pointer !important; outline: none !important;">-</button>
+              <div class="qty-num" id="vqnum-\${v.index}">1</div>
+              <button class="qty-btn" onclick="changeQty(\${v.index},1)" style="width: 26px !important; height: 26px !important; border-radius: 50% !important; border: 1px solid var(--green-border) !important; background: var(--white) !important; color: var(--green) !important; font-size: 18px !important; font-weight: 500 !important; display: flex !important; align-items: center !important; justify-content: center !important; line-height: 0 !important; padding: 0 !important; font-family: sans-serif !important; cursor: pointer !important; outline: none !important;">+</button>
+            </div>\` : ''}
+          </div>
+          <div class="variant-notif" id="vnotif-\${v.index}"></div>
+        \`).join("")}
+      </div>\`;
+    } else {
+      // Single variant product
+      const v = group.variants[0];
+      html += \`
+      <div class="product-group-title">\${group.name}</div>
+      <div class="variant-item" id="vcard-\${v.index}" onclick="toggleVariant(\${v.index})">
+        <input type="checkbox" id="vchk-\${v.index}" tabindex="-1" />
+        <div class="variant-info">
+          <div class="variant-name">\${v.product_name}</div>
+          <div class="variant-price">\${fmt(v.price)}</div>
+        </div>
+        \${CONFIG.SHOW_QTY_BUTTONS ? \`
+        <div class="qty-wrap" id="vqty-\${v.index}" style="display:none" onclick="event.stopPropagation()">
+          <button class="qty-btn" onclick="changeQty(\${v.index},-1)" style="width: 26px !important; height: 26px !important; border-radius: 50% !important; border: 1px solid var(--green-border) !important; background: var(--white) !important; color: var(--green) !important; font-size: 18px !important; font-weight: 500 !important; display: flex !important; align-items: center !important; justify-content: center !important; line-height: 0 !important; padding: 0 !important; font-family: sans-serif !important; cursor: pointer !important; outline: none !important;">-</button>
+          <div class="qty-num" id="vqnum-\${v.index}">1</div>
+          <button class="qty-btn" onclick="changeQty(\${v.index},1)" style="width: 26px !important; height: 26px !important; border-radius: 50% !important; border: 1px solid var(--green-border) !important; background: var(--white) !important; color: var(--green) !important; font-size: 18px !important; font-weight: 500 !important; display: flex !important; align-items: center !important; justify-content: center !important; line-height: 0 !important; padding: 0 !important; font-family: sans-serif !important; cursor: pointer !important; outline: none !important;">+</button>
+        </div>\` : ''}
+      </div>
+      <div class="variant-notif" id="vnotif-\${v.index}"></div>\`;
+    }
   });
   
   listEl.innerHTML = html;
+}
+
+function toggleProductGroup(gIdx) {
+  const cont = document.getElementById("vcont-" + gIdx);
+  const pchk = document.getElementById("pchk-" + gIdx);
+  const pcard = document.getElementById("pcard-" + gIdx);
+  
+  const isExpanded = cont ? cont.style.display !== "none" : false;
+  
+  if (!isExpanded) {
+    if (cont) cont.style.display = "block";
+    if (pchk) pchk.checked = true;
+    if (pcard) pcard.classList.add("selected");
+    
+    // Auto-select first variant if none selected in this group
+    const groups = [];
+    VARIANTS.forEach((v, i) => {
+      let group = groups.find(g => g.name === v.product_name);
+      if (!group) {
+        group = { name: v.product_name, variants: [] };
+        groups.push(group);
+      }
+      group.variants.push(i);
+    });
+    
+    const groupVariants = groups[gIdx].variants;
+    const anySelected = groupVariants.some(vIdx => !!selectedVariants[vIdx]);
+    if (!anySelected) {
+      toggleVariant(groupVariants[0]);
+    }
+  } else {
+    if (cont) cont.style.display = "none";
+    if (pchk) pchk.checked = false;
+    if (pcard) pcard.classList.remove("selected");
+    
+    // Deselect all variants in this group
+    const groups = [];
+    VARIANTS.forEach((v, i) => {
+      let group = groups.find(g => g.name === v.product_name);
+      if (!group) {
+        group = { name: v.product_name, variants: [] };
+        groups.push(group);
+      }
+      group.variants.push(i);
+    });
+    const groupVariants = groups[gIdx].variants;
+    groupVariants.forEach(vIdx => {
+      if (selectedVariants[vIdx]) {
+        toggleVariant(vIdx);
+      }
+    });
+  }
+}
+
+function updateGroupState(vIdx) {
+  const v = VARIANTS[vIdx];
+  const groups = [];
+  VARIANTS.forEach((variant, index) => {
+    let group = groups.find(g => g.name === variant.product_name);
+    if (!group) {
+      group = { name: variant.product_name, variants: [] };
+      groups.push(group);
+    }
+    group.variants.push(index);
+  });
+  
+  const gIdx = groups.findIndex(g => g.name === v.product_name);
+  if (gIdx === -1 || groups[gIdx].variants.length <= 1) return;
+  
+  const groupVariants = groups[gIdx].variants;
+  const anySelected = groupVariants.some(idx => !!selectedVariants[idx]);
+  
+  const pchk = document.getElementById("pchk-" + gIdx);
+  const pcard = document.getElementById("pcard-" + gIdx);
+  const vcont = document.getElementById("vcont-" + gIdx);
+  
+  if (pchk && pcard) {
+    pchk.checked = anySelected;
+    if (anySelected) {
+      pcard.classList.add("selected");
+      if (vcont) vcont.style.display = "block";
+    } else {
+      pcard.classList.remove("selected");
+      if (vcont) vcont.style.display = "none";
+    }
+  }
 }
 
 function toggleVariant(i) {
@@ -509,6 +654,31 @@ function toggleVariant(i) {
       if (card) card.classList.remove("selected");
       if (chk) chk.checked = false;
       if (qty) qty.style.display = "none";
+      
+      // Also update group state for cleared variants
+      const v = VARIANTS[idx];
+      const groups = [];
+      VARIANTS.forEach((variant, vIndex) => {
+        let group = groups.find(g => g.name === variant.product_name);
+        if (!group) {
+          group = { name: variant.product_name, variants: [] };
+          groups.push(group);
+        }
+        group.variants.push(vIndex);
+      });
+      const gIdx = groups.findIndex(g => g.name === v.product_name);
+      if (gIdx !== -1 && groups[gIdx].variants.length > 1) {
+        const pchk = document.getElementById("pchk-" + gIdx);
+        const pcard = document.getElementById("pcard-" + gIdx);
+        const vcont = document.getElementById("vcont-" + gIdx);
+        
+        // Only close if the new variant 'i' belongs to a different product
+        if (VARIANTS[i].product_name !== v.product_name) {
+          if (pchk) pchk.checked = false;
+          if (pcard) pcard.classList.remove("selected");
+          if (vcont) vcont.style.display = "none";
+        }
+      }
     });
     selectedVariants = {};
   }
@@ -518,15 +688,17 @@ function toggleVariant(i) {
   const qtyEl = document.getElementById("vqty-" + i);
   if (!isSelected) {
     selectedVariants[i] = 1;
-    chk.checked = true;
-    card.classList.add("selected");
+    if (chk) chk.checked = true;
+    if (card) card.classList.add("selected");
     if (qtyEl) qtyEl.style.display = "flex";
   } else {
     delete selectedVariants[i];
-    chk.checked = false;
-    card.classList.remove("selected");
+    if (chk) chk.checked = false;
+    if (card) card.classList.remove("selected");
     if (qtyEl) qtyEl.style.display = "none";
   }
+  
+  updateGroupState(i);
   updateAllVariantNotifs();
   updateSummary();
   refreshCourierIfReady();
@@ -563,6 +735,8 @@ function updateSummary() {
   const card    = document.getElementById("summary-card");
   const items   = document.getElementById("summary-items");
   const totalEl = document.getElementById("summary-total-val");
+
+  if (!card || !items || !totalEl) return;
 
   if (!keys.length) { card.classList.add("hidden"); return; }
   card.classList.remove("hidden");
