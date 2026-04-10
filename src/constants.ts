@@ -32,6 +32,7 @@ export const DEFAULT_STATE: FormState = {
   },
   productMode: 'all',
   specificVariantIds: [],
+  specificBundleIds: [],
   autoSelectFirst: true,
   allowMultiSelect: false,
   productSectionTitle: "Pilih Isi",

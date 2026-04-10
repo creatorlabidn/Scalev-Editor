@@ -30,6 +30,7 @@ export interface FormState {
   fields: FormField[];
   productMode: 'all' | 'specific';
   specificVariantIds: string[];
+  specificBundleIds: string[];
   autoSelectFirst: boolean;
   allowMultiSelect: boolean;
   productSectionTitle: string;

@@ -1,7 +1,7 @@
 import { FormState } from "../types";
 
 export function generateHTML(state: FormState): string {
-  const { config, payments, fields, productMode, specificVariantIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons, submitButtonText, submitButtonBgColor, submitButtonTextColor, showProductSection } = state;
+  const { config, payments, fields, productMode, specificVariantIds, specificBundleIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons, submitButtonText, submitButtonBgColor, submitButtonTextColor, showProductSection } = state;
 
   const fieldsHTML = fields.map(field => {
     if (field.type === 'location') {
@@ -46,7 +46,9 @@ export function generateHTML(state: FormState): string {
 
   const productsFilterLogic = productMode === 'specific' 
     ? `const allowedVariantIds = ${JSON.stringify(specificVariantIds)};
-    const rawProducts = data?.data?.results || data?.data || [];
+    const allowedBundleIds = ${JSON.stringify(specificBundleIds || [])};
+    const rawProducts = prodData?.data?.results || prodData?.data || [];
+    const rawBundles = bundleData?.data?.results || bundleData?.data || [];
     
     // Create a map of all variants for quick lookup
     const variantMap = {};
@@ -57,8 +59,14 @@ export function generateHTML(state: FormState): string {
       });
     });
 
-    // Build ordered list based on allowedVariantIds
+    const bundleMap = {};
+    rawBundles.forEach(b => {
+      bundleMap[String(b.id)] = b;
+    });
+
+    // Build ordered list based on allowedVariantIds and allowedBundleIds
     const orderedVariants = [];
+    
     allowedVariantIds.forEach(vid => {
       if (variantMap[vid]) {
         const { product, variant } = variantMap[vid];
@@ -81,9 +89,49 @@ export function generateHTML(state: FormState): string {
       }
     });
 
+    allowedBundleIds.forEach(bid => {
+      if (bundleMap[bid]) {
+        const bundle = bundleMap[bid];
+        const priceOption = bundle.bundle_price_options?.[0] || {};
+        const price = priceOption.price || 0;
+        const weight = bundle.weight_bump || 0;
+        
+        // Calculate original price (strikethrough)
+        let originalPrice = 0;
+        if (bundle.bundlelines) {
+          bundle.bundlelines.forEach(line => {
+            const vPrice = Number(line.variant?.price || 0);
+            originalPrice += vPrice * (line.quantity || 1);
+          });
+        }
+        
+        const bundleLines = (bundle.bundlelines || []).map(line => ({
+          name: line.variant?.product_name || line.variant?.name || "Produk",
+          price: Number(line.variant?.price || 0),
+          quantity: line.quantity || 1,
+          variant_id: line.variant_id || line.variant?.id
+        }));
+
+        orderedVariants.push({
+          unique_id:  priceOption.unique_id || "bundle_" + bundle.id,
+          variant_id: bundle.id,
+          name:       bundle.name,
+          product_name: bundle.name,
+          option_name: priceOption.name || "",
+          price:      Number(price),
+          original_price: originalPrice > Number(price) ? originalPrice : null,
+          bundle_lines: bundleLines,
+          weight:     Number(weight),
+          is_bundle:  true
+        });
+      }
+    });
+
     VARIANTS = orderedVariants;`
-    : `const rawProducts = data?.data?.results || data?.data || [];
+    : `const rawProducts = prodData?.data?.results || prodData?.data || [];
+    const rawBundles = bundleData?.data?.results || bundleData?.data || [];
     const allVariants = [];
+    
     rawProducts.forEach(function(product) {
       const variants = product.variants || product.product_variants || [];
       variants.forEach(function(v) {
@@ -105,6 +153,44 @@ export function generateHTML(state: FormState): string {
         });
       });
     });
+
+    rawBundles.forEach(function(bundle) {
+      const priceOption = bundle.bundle_price_options?.[0] || {};
+      const price = priceOption.price || 0;
+      const weight = bundle.weight_bump || 0;
+
+      // Calculate original price (strikethrough)
+      let originalPrice = 0;
+      if (bundle.bundlelines) {
+        bundle.bundlelines.forEach(function(line) {
+          const vPrice = Number(line.variant?.price || 0);
+          originalPrice += vPrice * (line.quantity || 1);
+        });
+      }
+
+      const bundleLines = (bundle.bundlelines || []).map(function(line) {
+        return {
+          name: line.variant?.product_name || line.variant?.name || "Produk",
+          price: Number(line.variant?.price || 0),
+          quantity: line.quantity || 1,
+          variant_id: line.variant_id || line.variant?.id
+        };
+      });
+
+      allVariants.push({
+        unique_id:  priceOption.unique_id || "bundle_" + bundle.id,
+        variant_id: bundle.id,
+        name:       bundle.name,
+        product_name: bundle.name,
+        option_name: priceOption.name || "",
+        price:      Number(price),
+        original_price: originalPrice > Number(price) ? originalPrice : null,
+        bundle_lines: bundleLines,
+        weight:     Number(weight),
+        is_bundle:  true
+      });
+    });
+
     VARIANTS = allVariants;`;
 
   return `<!DOCTYPE html>
@@ -166,7 +252,8 @@ export function generateHTML(state: FormState): string {
   .variant-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--green); flex-shrink: 0; pointer-events: none; }
   .variant-info { flex: 1; }
   .variant-name { font-size: 14px; font-weight: 500; color: var(--text); }
-  .variant-price { font-size: 12px; color: var(--gray-text); margin-top: 2px; }
+  .variant-price { font-size: 12px; color: var(--gray-text); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+  .price-original { font-size: 11px; font-weight: 400; color: var(--gray-text); text-decoration: line-through; }
   .qty-wrap { display: flex; align-items: center; gap: 6px; }
   .qty-btn { 
     flex-shrink: 0 !important;
@@ -397,6 +484,13 @@ function getUrlParam(name) {
 })();
 
 const fmt = n => "Rp " + Math.round(n).toLocaleString("id-ID");
+const getErr = (d) => {
+  if (!d) return "Unknown";
+  if (typeof d === 'string') return d;
+  if (d.message) return typeof d.message === 'object' ? JSON.stringify(d.message) : String(d.message);
+  if (d.error) return typeof d.error === 'object' ? JSON.stringify(d.error) : String(d.error);
+  return JSON.stringify(d);
+};
 const apiHeaders = () => ({
   "Authorization": "Bearer " + CONFIG.API_KEY,
   "Content-Type":  "application/json",
@@ -447,12 +541,16 @@ function updateAllVariantNotifs() {
 async function loadProductsFromAPI() {
   const listEl = document.getElementById("variants-list");
   try {
-    const res  = await fetch(CONFIG.API_BASE + "/stores/" + CONFIG.STORE_INT_ID + "/products", {
-      headers: apiHeaders()
-    });
-    const data = await res.json();
+    const [prodRes, bundleRes] = await Promise.all([
+      fetch(CONFIG.API_BASE + "/stores/" + CONFIG.STORE_INT_ID + "/products", { headers: apiHeaders() }),
+      fetch(CONFIG.API_BASE + "/stores/" + CONFIG.STORE_INT_ID + "/bundles", { headers: apiHeaders() })
+    ]);
+    
+    const prodData = await prodRes.json();
+    const bundleData = await bundleRes.json();
 
-    if (!res.ok) throw new Error(data?.message || "Gagal memuat produk (HTTP " + res.status + ")");
+    if (!prodRes.ok) throw new Error(getErr(prodData));
+    if (!bundleRes.ok) throw new Error(getErr(bundleData));
 
     ${productsFilterLogic}
 
@@ -481,7 +579,7 @@ async function loadProductsFromAPI() {
     }
 
   } catch (e) {
-    if (listEl) listEl.innerHTML = '<div class="product-load-error">Gagal memuat produk: ' + e.message + '<br><button class="retry-btn" onclick="loadProductsFromAPI()">Coba Lagi</button></div>';
+    if (listEl) listEl.innerHTML = '<div class="product-load-error">Gagal memuat produk: ' + (e.message || JSON.stringify(e)) + '<br><button class="retry-btn" onclick="loadProductsFromAPI()">Coba Lagi</button></div>';
   }
 }
 
@@ -518,7 +616,10 @@ function renderVariants() {
             <input type="checkbox" id="vchk-\${v.index}" tabindex="-1" />
             <div class="variant-info">
               <div class="variant-name">\${v.option_name || v.name}</div>
-              <div class="variant-price">\${fmt(v.price)}</div>
+              <div class="variant-price">
+                <span>\${fmt(v.price)}</span>
+                \${v.original_price ? \`<span class="price-original">\${fmt(v.original_price)}</span>\` : ''}
+              </div>
             </div>
             \${CONFIG.SHOW_QTY_BUTTONS ? \`
             <div class="qty-wrap" id="vqty-\${v.index}" style="display:none" onclick="event.stopPropagation()">
@@ -539,7 +640,10 @@ function renderVariants() {
         <input type="checkbox" id="vchk-\${v.index}" tabindex="-1" />
         <div class="variant-info">
           <div class="variant-name">\${v.product_name}</div>
-          <div class="variant-price">\${fmt(v.price)}</div>
+          <div class="variant-price">
+            <span>\${fmt(v.price)}</span>
+            \${v.original_price ? \`<span class="price-original">\${fmt(v.original_price)}</span>\` : ''}
+          </div>
         </div>
         \${CONFIG.SHOW_QTY_BUTTONS ? \`
         <div class="qty-wrap" id="vqty-\${v.index}" style="display:none" onclick="event.stopPropagation()">
@@ -746,15 +850,34 @@ function updateSummary() {
   const isFree   = showPromo && totalQty > 1;
 
   let total = 0;
-  let rows  = keys.map(i => {
-    const q   = selectedVariants[i];
-    const sub = VARIANTS[i].price * q;
-    total += sub;
-    return '<div class="summary-row"><span>' + VARIANTS[i].name + ' x' + q + '</span><span>' + fmt(sub) + '</span></div>';
-  }).join("");
+  let rows = "";
+  keys.forEach(i => {
+    const v = VARIANTS[i];
+    const q = selectedVariants[i];
+    
+    if (v.is_bundle && v.bundle_lines) {
+      let bundleOriginalTotal = 0;
+      v.bundle_lines.forEach(line => {
+        const lineTotal = line.price * line.quantity * q;
+        bundleOriginalTotal += lineTotal;
+        rows += '<div class="summary-row"><span>' + line.name + ' (' + (line.quantity * q) + ' x ' + fmt(line.price) + ')</span><span>' + fmt(lineTotal) + '</span></div>';
+      });
+      
+      const bundlePriceTotal = v.price * q;
+      const discount = bundleOriginalTotal - bundlePriceTotal;
+      if (discount > 0) {
+        rows += '<div class="summary-row"><span style="font-weight:600">Diskon Produk</span><span style="color:var(--green);font-weight:600">-' + fmt(discount) + '</span></div>';
+      }
+      total += bundlePriceTotal;
+    } else {
+      const sub = v.price * q;
+      total += sub;
+      rows += '<div class="summary-row"><span>' + v.name + ' x' + q + '</span><span>' + fmt(sub) + '</span></div>';
+    }
+  });
 
   if (isFree) {
-    rows += '<div class="summary-row"><span>' + "${promoBonusText.replace(/"/g, '\\"')}" + '</span><span style="color:var(--green);font-weight:600;">Gratis</span></div>';
+    rows += '<div class="summary-row"><span style="font-weight:600">' + "${promoBonusText.replace(/"/g, '\\"')}" + '</span><span style="color:var(--green);font-weight:600;">Gratis</span></div>';
   }
 
   if (selectedCourierIdx !== null && courierList[selectedCourierIdx]) {
@@ -852,10 +975,27 @@ async function loadCouriers(locationId) {
     const warehouseBody = {
       store_id:       CONFIG.STORE_INT_ID,
       destination_id: locationId,
-      variants: Object.keys(selectedVariants).map(i => ({
-        variant_id: VARIANTS[i].variant_id,
-        qty:        selectedVariants[i],
-      })),
+      variants: Object.keys(selectedVariants).reduce((acc, i) => {
+        const v = VARIANTS[i];
+        const q = selectedVariants[i];
+        if (v.is_bundle && v.bundle_lines) {
+          v.bundle_lines.forEach(line => {
+            const vid = line.variant_id || line.variant?.id;
+            if (vid) {
+              acc.push({
+                variant_id: vid,
+                qty:        line.quantity * q,
+              });
+            }
+          });
+        } else {
+          acc.push({
+            variant_id: v.variant_id,
+            qty:        q,
+          });
+        }
+        return acc;
+      }, []),
     };
 
     const wRes  = await fetch(CONFIG.API_BASE + "/shipping-costs/search-warehouse", {
@@ -866,7 +1006,8 @@ async function loadCouriers(locationId) {
     const wData = await wRes.json();
 
     if (!wRes.ok) {
-      const errMsg = wData?.message || wData?.error || JSON.stringify(wData);
+      console.error("Warehouse Error:", wData);
+      const errMsg = getErr(wData);
       if (courierListEl) courierListEl.innerHTML = '<div class="courier-hint" style="color:#dc2626">Error warehouse: ' + errMsg + '</div>';
       return;
     }
@@ -917,7 +1058,8 @@ async function loadCouriers(locationId) {
     const cData = await cRes.json();
 
     if (!cRes.ok) {
-      const errMsg = cData?.message || cData?.error || JSON.stringify(cData);
+      console.error("Courier Error:", cData);
+      const errMsg = getErr(cData);
       courierListEl.innerHTML = '<div class="courier-hint" style="color:#dc2626">Error kurir: ' + errMsg + '</div>';
       return;
     }
@@ -934,7 +1076,7 @@ async function loadCouriers(locationId) {
     selectCourier(0);
 
   } catch (e) {
-    courierListEl.innerHTML = '<div class="courier-hint" style="color:#dc2626">Gagal memuat kurir: ' + e.message + '</div>';
+    courierListEl.innerHTML = '<div class="courier-hint" style="color:#dc2626">Gagal memuat kurir: ' + (e.message || JSON.stringify(e)) + '</div>';
   }
 }
 
@@ -1054,13 +1196,20 @@ async function submitOrder() {
     customer_name:       nama,
     customer_phone:      phone.startsWith("62") ? phone : "62" + phone,
     customer_email:      email,
-    address:             alamat + (note ? "\\nCatatan: " + note : ""),
+    address:             alamat,
+    notes:               note,
     location_id:         parseInt(locId) || null,
     payment_method:      pm.id,
     warehouse_unique_id: warehouseUniqueId,
     courier_service_id:  courier ? (courier.courier_service?.id || courier.courier_service_id || courier.id) : null,
     shipping_cost:       ongkir,
-    ordervariants:       Object.keys(selectedVariants).map(i => ({ quantity: selectedVariants[i], variant_unique_id: VARIANTS[i].unique_id })),
+    ordervariants:       Object.keys(selectedVariants).map(i => {
+      const v = VARIANTS[i];
+      if (v.is_bundle) {
+        return { quantity: selectedVariants[i], bundle_price_option_unique_id: v.unique_id };
+      }
+      return { quantity: selectedVariants[i], variant_unique_id: v.unique_id };
+    }),
     source_url:          window.location.href,
     event_source_url:    window.location.href,
     metadata: {
@@ -1097,7 +1246,7 @@ async function submitOrder() {
 
     if (!res.ok) {
       console.error("[Scalev] Order Error Response:", data);
-      const errMsg = (typeof data.message === "string" && data.message) || (Array.isArray(data.errors) && data.errors.map(e => e.message || e).join(", ")) || (typeof data.error === "string" && data.error) || (data.details ? JSON.stringify(data.details) : null) || "Gagal membuat order (HTTP " + res.status + ")";
+      const errMsg = (typeof data.message === "string" && data.message) || (Array.isArray(data.errors) && data.errors.map(e => e.message || e).join(", ")) || (typeof data.error === "string" && data.error) || (data.details ? JSON.stringify(data.details) : null) || getErr(data);
       throw new Error(errMsg);
     }
 
@@ -1110,7 +1259,7 @@ async function submitOrder() {
     console.log("[Scalev] Action:", CONFIG.AFTER_ORDER_ACTION);
     console.log("[Scalev] Order Link:", orderLink);
 
-    sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, phone, email);
+    sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, phone, email, note);
 
     const isCod = pm.id === 'cod';
     const forceWa = isCod && CONFIG.COD_ALWAYS_WHATSAPP;
@@ -1147,7 +1296,7 @@ async function submitOrder() {
   }
 }
 
-async function sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, phone, email) {
+async function sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, phone, email, note) {
   const courier  = courierList[selectedCourierIdx];
   const pm       = PAYMENT_METHODS[selectedPaymentIdx];
   const nama     = firstName + (lastName ? " " + lastName : "");
@@ -1171,7 +1320,8 @@ async function sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, pho
         code: courier.courier_service?.code || "",
       },
       orderlines: Object.keys(selectedVariants).map(i => ({ product_name: VARIANTS[i].name, quantity: selectedVariants[i], variant_price: String(VARIANTS[i].price) + ".00", product_price: String(VARIANTS[i].price * selectedVariants[i]) + ".00" })),
-      message_variables: { event_source_url: window.location.href },
+      notes: note,
+      message_variables: { event_source_url: window.location.href, notes: note },
       metadata: {
         event_source_url: window.location.href,
         fbp: capiData.fbp || "",

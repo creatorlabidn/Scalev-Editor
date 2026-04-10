@@ -31,7 +31,9 @@ export default function Editor() {
   const [copied, setCopied] = useState(false);
   const [generatedHTML, setGeneratedHTML] = useState('');
   const [products, setProducts] = useState<any[]>([]);
+  const [bundles, setBundles] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [loadingBundles, setLoadingBundles] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedProducts, setExpandedProducts] = useState<string[]>([]);
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
@@ -46,6 +48,7 @@ export default function Editor() {
   useEffect(() => {
     if (activeTab === 'products') {
       fetchProducts();
+      fetchBundles();
     }
   }, [activeTab, state.config.apiKey, state.config.storeIntId]);
 
@@ -68,6 +71,26 @@ export default function Editor() {
     }
   };
 
+  const fetchBundles = async () => {
+    if (!state.config.storeIntId || !state.config.apiKey) return;
+    setLoadingBundles(true);
+    try {
+      const res = await fetch(`https://api.scalev.id/v2/stores/${state.config.storeIntId}/bundles`, {
+        headers: {
+          "Authorization": "Bearer " + state.config.apiKey,
+          "Accept": "application/json",
+        }
+      });
+      const data = await res.json();
+      const results = data?.data?.results || data?.data || [];
+      setBundles(results);
+    } catch (e) {
+      console.error("Failed to fetch bundles", e);
+    } finally {
+      setLoadingBundles(false);
+    }
+  };
+
   const toggleVariantSelection = (id: string) => {
     setState(prev => {
       const current = prev.specificVariantIds;
@@ -75,6 +98,16 @@ export default function Editor() {
         ? current.filter(i => i !== id)
         : [...current, id];
       return { ...prev, specificVariantIds: next };
+    });
+  };
+
+  const toggleBundleSelection = (id: string) => {
+    setState(prev => {
+      const current = prev.specificBundleIds || [];
+      const next = current.includes(id) 
+        ? current.filter(i => i !== id)
+        : [...current, id];
+      return { ...prev, specificBundleIds: next };
     });
   };
 
@@ -196,6 +229,15 @@ export default function Editor() {
     
     [newIds[index], newIds[targetIndex]] = [newIds[targetIndex], newIds[index]];
     setState(prev => ({ ...prev, specificVariantIds: newIds }));
+  };
+
+  const moveBundle = (index: number, direction: 'up' | 'down') => {
+    const newIds = [...(state.specificBundleIds || [])];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newIds.length) return;
+    
+    [newIds[index], newIds[targetIndex]] = [newIds[targetIndex], newIds[index]];
+    setState(prev => ({ ...prev, specificBundleIds: newIds }));
   };
 
   const tabs = [
@@ -584,6 +626,73 @@ export default function Editor() {
                       )}
                     </div>
                     <p className="text-xs text-gray-400">Selected: {state.specificVariantIds.length} variants</p>
+
+                    <div className="pt-4 border-t border-gray-100 space-y-4">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Bundles</p>
+                      <div className="border border-gray-100 rounded-lg divide-y divide-gray-100">
+                        {loadingBundles ? (
+                          <div className="p-8 text-center text-gray-400 flex flex-col items-center gap-2">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                            <p className="text-sm">Loading bundles...</p>
+                          </div>
+                        ) : bundles.length === 0 ? (
+                          <div className="p-8 text-center text-gray-400">
+                            <p className="text-sm">No bundles found.</p>
+                          </div>
+                        ) : (
+                          bundles
+                            .filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                            .map(bundle => {
+                              const bid = String(bundle.id);
+                              const isSelected = state.specificBundleIds?.includes(bid);
+                              const priceOption = bundle.bundle_price_options?.[0] || {};
+                              return (
+                                <div 
+                                  key={bid} 
+                                  onClick={() => toggleBundleSelection(bid)}
+                                  className={`p-3 flex items-center gap-3 transition-colors hover:bg-gray-50 cursor-pointer ${
+                                    isSelected ? 'bg-emerald-50/30' : ''
+                                  }`}
+                                >
+                                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                                    isSelected
+                                      ? 'bg-emerald-600 border-emerald-600 text-white'
+                                      : 'border-gray-300 bg-white'
+                                  }`}>
+                                    {isSelected && <Check className="w-3 h-3" />}
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-bold text-gray-800">{bundle.name}</p>
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
+                                        Rp {Number(priceOption.price || 0).toLocaleString('id-ID')}
+                                      </p>
+                                      {(() => {
+                                        let originalPrice = 0;
+                                        if (bundle.bundlelines) {
+                                          bundle.bundlelines.forEach((line: any) => {
+                                            originalPrice += Number(line.variant?.price || 0) * (line.quantity || 1);
+                                          });
+                                        }
+                                        if (originalPrice > Number(priceOption.price || 0)) {
+                                          return (
+                                            <p className="text-[10px] text-gray-400 line-through uppercase tracking-wider">
+                                              Rp {originalPrice.toLocaleString('id-ID')}
+                                            </p>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">Bundle ID: {bundle.id}</p>
+                                  </div>
+                                </div>
+                              );
+                            })
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400">Selected: {state.specificBundleIds?.length || 0} bundles</p>
+                    </div>
                   </motion.div>
                 )}
 
@@ -663,6 +772,93 @@ export default function Editor() {
                                   e.stopPropagation();
                                   toggleVariantSelection(vid);
                                 }}
+                                className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </Reorder.Item>
+                          );
+                        })}
+                      </Reorder.Group>
+                    </div>
+                  </motion.div>
+                )}
+
+                {state.productMode === 'specific' && state.specificBundleIds && state.specificBundleIds.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    className="pt-6 border-t border-gray-100 space-y-4"
+                  >
+                    <SectionHeader title="Selected Bundles Order" description="Drag to reorder or use arrows to move bundles." />
+                    <div className="grid grid-cols-1 gap-2">
+                      <Reorder.Group 
+                        axis="y" 
+                        values={state.specificBundleIds} 
+                        onReorder={(newIds) => setState(prev => ({ ...prev, specificBundleIds: newIds }))}
+                        className="space-y-2"
+                      >
+                        {state.specificBundleIds.map((bid, idx) => {
+                          const bundle = bundles.find(b => String(b.id) === bid);
+                          if (!bundle) return null;
+                          const priceOption = bundle.bundle_price_options?.[0] || {};
+
+                          return (
+                            <Reorder.Item 
+                              key={bid} 
+                              value={bid}
+                              className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex items-center gap-3 group cursor-grab active:cursor-grabbing"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="text-gray-300 group-hover:text-emerald-400 transition-colors">
+                                  <GripVertical className="w-4 h-4" />
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                  <button 
+                                    disabled={idx === 0}
+                                    onClick={(e) => { e.stopPropagation(); moveBundle(idx, 'up'); }}
+                                    className="p-0.5 hover:bg-white rounded disabled:opacity-20 transition-colors"
+                                  >
+                                    <ArrowUp className="w-3.5 h-3.5 text-gray-500" />
+                                  </button>
+                                  <button 
+                                    disabled={idx === state.specificBundleIds.length - 1}
+                                    onClick={(e) => { e.stopPropagation(); moveBundle(idx, 'down'); }}
+                                    className="p-0.5 hover:bg-white rounded disabled:opacity-20 transition-colors"
+                                  >
+                                    <ArrowDown className="w-3.5 h-3.5 text-gray-500" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="w-8 h-8 bg-white rounded flex items-center justify-center text-emerald-600 font-bold text-xs border border-gray-100">
+                                {idx + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-gray-800 truncate">{bundle.name}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-[10px] text-emerald-600 font-bold">
+                                    Rp {Number(priceOption.price || 0).toLocaleString('id-ID')}
+                                  </p>
+                                  {(() => {
+                                    let originalPrice = 0;
+                                    if (bundle.bundlelines) {
+                                      bundle.bundlelines.forEach((line: any) => {
+                                        originalPrice += Number(line.variant?.price || 0) * (line.quantity || 1);
+                                      });
+                                    }
+                                    if (originalPrice > Number(priceOption.price || 0)) {
+                                      return (
+                                        <p className="text-[10px] text-gray-400 line-through">
+                                          Rp {originalPrice.toLocaleString('id-ID')}
+                                        </p>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
+                                </div>
+                              </div>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); toggleBundleSelection(bid); }}
                                 className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -853,93 +1049,6 @@ export default function Editor() {
                   </div>
                 </div>
               </div>
-
-              <div className="space-y-4 pt-4 border-t border-gray-100">
-                <SectionHeader title="Post-Order Action" description="Choose what happens after a customer successfully places an order." />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div 
-                    onClick={() => setState(prev => ({ ...prev, afterOrderAction: 'whatsapp' }))}
-                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-4 ${
-                      state.afterOrderAction === 'whatsapp' 
-                        ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
-                        : 'bg-white border-gray-200 hover:border-emerald-200'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
-                      state.afterOrderAction === 'whatsapp' ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-gray-300'
-                    }`}>
-                      {state.afterOrderAction === 'whatsapp' && <div className="w-2 h-2 rounded-full bg-white" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-bold truncate ${state.afterOrderAction === 'whatsapp' ? 'text-emerald-900' : 'text-gray-700'}`}>
-                        WhatsApp
-                      </p>
-                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                        Direct chat
-                      </p>
-                    </div>
-                  </div>
-                  <div 
-                    onClick={() => setState(prev => ({ ...prev, afterOrderAction: 'order_link' }))}
-                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-4 ${
-                      state.afterOrderAction === 'order_link' 
-                        ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
-                        : 'bg-white border-gray-200 hover:border-emerald-200'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
-                      state.afterOrderAction === 'order_link' ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-gray-300'
-                    }`}>
-                      {state.afterOrderAction === 'order_link' && <div className="w-2 h-2 rounded-full bg-white" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-bold truncate ${state.afterOrderAction === 'order_link' ? 'text-emerald-900' : 'text-gray-700'}`}>
-                        Order Link
-                      </p>
-                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                        Scalev page
-                      </p>
-                    </div>
-                  </div>
-                  <div 
-                    onClick={() => setState(prev => ({ ...prev, afterOrderAction: 'custom_link' }))}
-                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-4 ${
-                      state.afterOrderAction === 'custom_link' 
-                        ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
-                        : 'bg-white border-gray-200 hover:border-emerald-200'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
-                      state.afterOrderAction === 'custom_link' ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-gray-300'
-                    }`}>
-                      {state.afterOrderAction === 'custom_link' && <div className="w-2 h-2 rounded-full bg-white" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-bold truncate ${state.afterOrderAction === 'custom_link' ? 'text-emerald-900' : 'text-gray-700'}`}>
-                        Custom Link
-                      </p>
-                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                        Tautan bebas
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {state.afterOrderAction === 'custom_link' && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="mt-4"
-                  >
-                    <InputGroup 
-                      label="Custom Redirect URL" 
-                      value={state.customRedirectUrl || ""} 
-                      onChange={v => setState(prev => ({ ...prev, customRedirectUrl: v }))} 
-                      placeholder="https://tokoanda.com/terima-kasih" 
-                    />
-                  </motion.div>
-                )}
-              </div>
             </motion.div>
           )}
 
@@ -1073,6 +1182,93 @@ export default function Editor() {
                     onChange={v => setState(prev => ({ ...prev, codAlwaysWhatsapp: v }))} 
                   />
                 </div>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-gray-100">
+                <SectionHeader title="Post-Order Action" description="Choose what happens after a customer successfully places an order." />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div 
+                    onClick={() => setState(prev => ({ ...prev, afterOrderAction: 'whatsapp' }))}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-4 ${
+                      state.afterOrderAction === 'whatsapp' 
+                        ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
+                        : 'bg-white border-gray-200 hover:border-emerald-200'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
+                      state.afterOrderAction === 'whatsapp' ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-gray-300'
+                    }`}>
+                      {state.afterOrderAction === 'whatsapp' && <div className="w-2 h-2 rounded-full bg-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-bold truncate ${state.afterOrderAction === 'whatsapp' ? 'text-emerald-900' : 'text-gray-700'}`}>
+                        WhatsApp
+                      </p>
+                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                        Direct chat
+                      </p>
+                    </div>
+                  </div>
+                  <div 
+                    onClick={() => setState(prev => ({ ...prev, afterOrderAction: 'order_link' }))}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-4 ${
+                      state.afterOrderAction === 'order_link' 
+                        ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
+                        : 'bg-white border-gray-200 hover:border-emerald-200'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
+                      state.afterOrderAction === 'order_link' ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-gray-300'
+                    }`}>
+                      {state.afterOrderAction === 'order_link' && <div className="w-2 h-2 rounded-full bg-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-bold truncate ${state.afterOrderAction === 'order_link' ? 'text-emerald-900' : 'text-gray-700'}`}>
+                        Order Link
+                      </p>
+                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                        Scalev page
+                      </p>
+                    </div>
+                  </div>
+                  <div 
+                    onClick={() => setState(prev => ({ ...prev, afterOrderAction: 'custom_link' }))}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center gap-4 ${
+                      state.afterOrderAction === 'custom_link' 
+                        ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
+                        : 'bg-white border-gray-200 hover:border-emerald-200'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
+                      state.afterOrderAction === 'custom_link' ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-gray-300'
+                    }`}>
+                      {state.afterOrderAction === 'custom_link' && <div className="w-2 h-2 rounded-full bg-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-bold truncate ${state.afterOrderAction === 'custom_link' ? 'text-emerald-900' : 'text-gray-700'}`}>
+                        Custom Link
+                      </p>
+                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                        Tautan bebas
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {state.afterOrderAction === 'custom_link' && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-4"
+                  >
+                    <InputGroup 
+                      label="Custom Redirect URL" 
+                      value={state.customRedirectUrl || ""} 
+                      onChange={v => setState(prev => ({ ...prev, customRedirectUrl: v }))} 
+                      placeholder="https://tokoanda.com/terima-kasih" 
+                    />
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           )}
