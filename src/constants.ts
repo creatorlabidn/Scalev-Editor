@@ -21,6 +21,8 @@ export const AVAILABLE_PAYMENTS: PaymentMethod[] = [
   { id: "bank_transfer", label: "Bank Transfer", badge: "TRANSFER", color: "#007bff", logo: "https://res.cloudinary.com/dho4tdzhr/image/upload/Bank_Indi_isysxq.png" },
 ];
 
+export const STATIC_CAPI_WEBHOOK = "https://n8n-wexrffsqeapb.sate.sumopod.my.id/webhook/423ad5a5-1680-41ce-8bdc-bf540b3f8a3e";
+
 export const DEFAULT_STATE: FormState = {
   config: {
     apiKey: "sk_ypI4g8mvkRKDusgNth74uYmopeQmHIjEZXByqcbmjZ54ZEYaRWdYY4C5NlX7ZQ1b",

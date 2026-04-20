@@ -1,4 +1,5 @@
 import { FormState } from "../types";
+import { STATIC_CAPI_WEBHOOK } from "../constants";
 
 export function generateHTML(state: FormState): string {
   const { config, payments, fields, productMode, specificVariantIds, specificBundleIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons, submitButtonText, submitButtonBgColor, submitButtonTextColor, showProductSection } = state;
@@ -85,6 +86,7 @@ export function generateHTML(state: FormState): string {
           option_name: optionName,
           price:      Number(price),
           weight:     Number(weight),
+          item_type:  product.item_type || "physical",
         });
       }
     });
@@ -109,7 +111,8 @@ export function generateHTML(state: FormState): string {
           name: line.variant?.product_name || line.variant?.name || "Produk",
           price: Number(line.variant?.price || 0),
           quantity: line.quantity || 1,
-          variant_id: line.variant_id || line.variant?.id
+          variant_id: line.variant_id || line.variant?.id,
+          item_type: line.variant?.product?.item_type || "physical"
         }));
 
         orderedVariants.push({
@@ -150,6 +153,7 @@ export function generateHTML(state: FormState): string {
           option_name: optionName,
           price:      Number(price),
           weight:     Number(weight),
+          item_type:  product.item_type || "physical",
         });
       });
     });
@@ -173,7 +177,8 @@ export function generateHTML(state: FormState): string {
           name: line.variant?.product_name || line.variant?.name || "Produk",
           price: Number(line.variant?.price || 0),
           quantity: line.quantity || 1,
-          variant_id: line.variant_id || line.variant?.id
+          variant_id: line.variant_id || line.variant?.id,
+          item_type: line.variant?.product?.item_type || "physical"
         };
       });
 
@@ -513,6 +518,18 @@ function getTotalWeight() {
 
 function getTotalQty() {
   return Object.keys(selectedVariants).reduce((sum, i) => sum + selectedVariants[i], 0);
+}
+
+function isAllDigital() {
+  const keys = Object.keys(selectedVariants);
+  if (keys.length === 0) return false;
+  return keys.every(i => {
+    const v = VARIANTS[i];
+    if (v.is_bundle && v.bundle_lines) {
+      return v.bundle_lines.every(line => line.item_type === 'digital');
+    }
+    return v.item_type === 'digital';
+  });
 }
 
 function validatePhone(phone) {
@@ -958,20 +975,29 @@ function refreshCourierIfReady() {
 }
 
 async function loadCouriers(locationId) {
-  const showCourier = ${showCourier};
+  const allDigital = isAllDigital();
+  const showCourier = ${showCourier} && !allDigital;
   const courierCard   = document.getElementById("courier-card");
   const courierListEl = document.getElementById("courier-list");
 
-  if (showCourier && courierCard && courierListEl) {
-    courierCard.classList.remove("hidden");
+  if (courierCard) {
+    if (showCourier) {
+      courierCard.classList.remove("hidden");
+    } else {
+      courierCard.classList.add("hidden");
+    }
+  }
+
+  if (showCourier && courierListEl) {
     courierListEl.innerHTML = '<div class="courier-hint"><span class="inline-spinner"></span>Mencari kurir tersedia...</div>';
   }
 
-  selectedCourierIdx = null;
-  courierList        = [];
-  warehouseUniqueId  = null;
-  warehouseIntId     = null;
-  updateSummary();
+  if (!showCourier) {
+    selectedCourierIdx = null;
+    courierList = [];
+    updateSummary();
+    return;
+  }
 
   try {
     const warehouseBody = {
@@ -1154,13 +1180,15 @@ async function submitOrder() {
       fieldValues['phone_clean'] = cleanPhone;
     }
     
-    if (field.type === 'location' && !fieldValues['location_id']) {
+    const isDigital = isAllDigital();
+    if (!isDigital && field.type === 'location' && !fieldValues['location_id']) {
       showToast("Kecamatan wajib dipilih dari daftar", "error");
       return;
     }
   }
 
-  const showCourier = ${showCourier};
+  const allDigital = isAllDigital();
+  const showCourier = ${showCourier} && !allDigital;
   if (showCourier && selectedCourierIdx === null) { showToast("Pilih kurir pengiriman", "error"); return; }
 
   const nama   = fieldValues['f-nama'] || "";
@@ -1266,7 +1294,7 @@ async function submitOrder() {
     console.log("[Scalev] Action:", CONFIG.AFTER_ORDER_ACTION);
     console.log("[Scalev] Order Link:", orderLink);
 
-    sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, phone, email, finalNote);
+    await sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, phone, email, finalNote);
 
     const isCod = pm.id === 'cod';
     const forceWa = isCod && CONFIG.COD_ALWAYS_WHATSAPP;
@@ -1325,9 +1353,9 @@ async function sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, pho
       shipping_cost:  String(ongkir) + ".00",
       customer: { name: nama, phone: "62" + phone, email: email },
       courier_service: {
-        courier: { name: courier.courier_service?.courier?.name || "", code: courier.courier_service?.courier?.code || "" },
-        name: courier.courier_service?.name || "",
-        code: courier.courier_service?.code || "",
+        courier: { name: courier?.courier_service?.courier?.name || "", code: courier?.courier_service?.courier?.code || "" },
+        name: courier?.courier_service?.name || "",
+        code: courier?.courier_service?.code || "",
       },
       orderlines: Object.keys(selectedVariants).map(i => ({ product_name: VARIANTS[i].name, quantity: selectedVariants[i], variant_price: String(VARIANTS[i].price) + ".00", product_price: String(VARIANTS[i].price * selectedVariants[i]) + ".00" })),
       notes: note,

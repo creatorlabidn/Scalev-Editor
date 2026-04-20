@@ -15,19 +15,24 @@ import {
   Save,
   Check,
   CheckCircle2,
+  AlertCircle,
   ArrowUp,
   ArrowDown,
   Search,
   Loader2,
-  GripVertical
+  GripVertical,
+  X,
+  LifeBuoy,
+  MessageCircle,
+  ExternalLink
 } from 'lucide-react';
 import { FormState, PaymentMethod, FormField } from '../types';
-import { DEFAULT_STATE, AVAILABLE_PAYMENTS, AVAILABLE_FIELDS } from '../constants';
+import { DEFAULT_STATE, AVAILABLE_PAYMENTS, AVAILABLE_FIELDS, STATIC_CAPI_WEBHOOK } from '../constants';
 import { generateHTML } from '../lib/generator';
 
 export default function Editor() {
   const [state, setState] = useState<FormState>(DEFAULT_STATE);
-  const [activeTab, setActiveTab] = useState<'config' | 'products' | 'fields' | 'payments' | 'preview' | 'code'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'products' | 'fields' | 'payments' | 'preview' | 'code' | 'support'>('config');
   const [copied, setCopied] = useState(false);
   const [generatedHTML, setGeneratedHTML] = useState('');
   const [products, setProducts] = useState<any[]>([]);
@@ -40,6 +45,8 @@ export default function Editor() {
   const [searchingStore, setSearchingStore] = useState(false);
   const [storeSearchResults, setStoreSearchResults] = useState<any[]>([]);
   const [storeNotFound, setStoreNotFound] = useState(false);
+  const [webhookCopied, setWebhookCopied] = useState(false);
+  const [showWarning, setShowWarning] = useState<string | null>(null);
 
   useEffect(() => {
     setGeneratedHTML(generateHTML(state));
@@ -174,6 +181,17 @@ export default function Editor() {
   };
 
   const handleCopy = () => {
+    const { pixelId, fbAccessToken } = state.config;
+    
+    if (!pixelId || !fbAccessToken) {
+      const missing = [];
+      if (!pixelId) missing.push("Pixel ID");
+      if (!fbAccessToken) missing.push("CAPI Access Token");
+      
+      setShowWarning(`${missing.join(" & ")} belum diisi. Event Purchase tidak akan terkirim ke Meta CAPI!`);
+      setTimeout(() => setShowWarning(null), 5000);
+    }
+
     navigator.clipboard.writeText(generatedHTML);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -247,6 +265,7 @@ export default function Editor() {
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'preview', label: 'Preview', icon: Eye },
     { id: 'code', label: 'Code', icon: Code },
+    { id: 'support', label: 'Support', icon: LifeBuoy },
   ];
 
   return (
@@ -391,14 +410,33 @@ export default function Editor() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   <InputGroup label="WhatsApp Number" value={state.config.waNumber} onChange={v => updateConfig('waNumber', v)} placeholder="628..." />
-                  <InputGroup label="Webhook URL (n8n)" value={state.config.n8nWebhook || ''} onChange={v => updateConfig('n8nWebhook', v)} placeholder="https://..." />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-50">
                   <InputGroup label="Pixel ID" value={state.config.pixelId || ''} onChange={v => updateConfig('pixelId', v)} placeholder="Pixel ID" />
                   <InputGroup label="CAPI Access Token" value={state.config.fbAccessToken || ''} onChange={v => updateConfig('fbAccessToken', v)} placeholder="EAAB..." />
+                </div>
+
+                <div className="pt-4 border-t border-gray-50 space-y-2">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Webhook Scalev for Pixel CAPI</label>
+                  <div className="flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-lg group">
+                    <code className="text-xs text-gray-600 truncate flex-1 font-mono">
+                      {STATIC_CAPI_WEBHOOK}
+                    </code>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(STATIC_CAPI_WEBHOOK);
+                        setWebhookCopied(true);
+                        setTimeout(() => setWebhookCopied(false), 2000);
+                      }}
+                      className={`p-1.5 transition-colors ${webhookCopied ? 'text-emerald-600' : 'text-gray-400 hover:text-emerald-600'}`}
+                      title="Copy URL"
+                    >
+                      {webhookCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -1323,8 +1361,102 @@ export default function Editor() {
               </div>
             </motion.div>
           )}
+
+          {activeTab === 'support' && (
+            <motion.div 
+              key="support"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="max-w-2xl mx-auto py-12"
+            >
+              <div className="bg-white p-10 rounded-2xl border border-gray-100 shadow-xl text-center space-y-6">
+                <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                  <LifeBuoy className="w-10 h-10" />
+                </div>
+                
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Need Help?</h2>
+                  <p className="text-gray-500 mt-2 max-w-sm mx-auto">
+                    Punya kendala, menemukan bug/error, atau ingin request fitur baru? Kami siap membantu!
+                  </p>
+                </div>
+
+                <div className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <a 
+                    href="https://wa.me/6285845435110?text=Halo%2C%20saya%20ingin%20lapor%20bug%2Ferror%20di%20Scalev%20Form%20Builder"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-3 p-6 bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 rounded-2xl transition-all group"
+                  >
+                    <div className="p-3 bg-white rounded-xl shadow-sm text-amber-500 group-hover:text-emerald-600 transition-colors">
+                      <AlertCircle className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">Report Bug</p>
+                      <p className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider font-bold">Lapor Error</p>
+                    </div>
+                  </a>
+
+                  <a 
+                    href="https://wa.me/6285845435110?text=Halo%2C%20saya%20ingin%20request%20fitur%20baru%20di%20Scalev%20Form%20Builder"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-3 p-6 bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 rounded-2xl transition-all group"
+                  >
+                    <div className="p-3 bg-white rounded-xl shadow-sm text-blue-500 group-hover:text-emerald-600 transition-colors">
+                      <Plus className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">Request Feature</p>
+                      <p className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider font-bold">Minta Fitur</p>
+                    </div>
+                  </a>
+                </div>
+
+                <div className="pt-6 border-t border-gray-50">
+                  <a 
+                    href="https://wa.me/6285845435110"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg hover:shadow-emerald-200 active:scale-95"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    Hubungi via WhatsApp
+                    <ExternalLink className="w-4 h-4 ml-1 opacity-50" />
+                  </a>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
+
+      {/* Floating Warning Notification */}
+      <AnimatePresence>
+        {showWarning && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 50, x: '-50%' }}
+            className="fixed bottom-8 left-1/2 z-50 min-w-[320px] max-w-md bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-xl flex items-start gap-3"
+          >
+            <div className="bg-amber-100 p-2 rounded-lg text-amber-600">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-amber-900">Perhatian!</p>
+              <p className="text-xs text-amber-700 leading-relaxed mt-0.5">{showWarning}</p>
+            </div>
+            <button 
+              onClick={() => setShowWarning(null)}
+              className="text-amber-400 hover:text-amber-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
