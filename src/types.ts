@@ -22,6 +22,8 @@ export interface AppConfig {
   storeName?: string;
   waNumber: string;
   n8nWebhook: string;
+  pixelId?: string;
+  fbAccessToken?: string;
 }
 
 export interface FormState {

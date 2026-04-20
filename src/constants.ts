@@ -29,6 +29,8 @@ export const DEFAULT_STATE: FormState = {
     storeName: "Juragan PIK's Store",
     waNumber: "6285845435110",
     n8nWebhook: "https://n8n-wexrffsqeapb.sate.sumopod.my.id/webhook/9c279187-b669-4d3d-9ac5-ff2c15d864a2",
+    pixelId: "",
+    fbAccessToken: "",
   },
   productMode: 'all',
   specificVariantIds: [],

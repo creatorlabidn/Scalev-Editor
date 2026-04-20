@@ -391,8 +391,14 @@ export default function Editor() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <InputGroup label="WhatsApp Number" value={state.config.waNumber} onChange={v => updateConfig('waNumber', v)} placeholder="628..." />
+                  <InputGroup label="Webhook URL (n8n)" value={state.config.n8nWebhook || ''} onChange={v => updateConfig('n8nWebhook', v)} placeholder="https://..." />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-50">
+                  <InputGroup label="Pixel ID" value={state.config.pixelId || ''} onChange={v => updateConfig('pixelId', v)} placeholder="Pixel ID" />
+                  <InputGroup label="CAPI Access Token" value={state.config.fbAccessToken || ''} onChange={v => updateConfig('fbAccessToken', v)} placeholder="EAAB..." />
                 </div>
               </div>
             </motion.div>

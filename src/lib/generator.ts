@@ -435,6 +435,8 @@ const CONFIG = {
   PROMO_SUCCESS_TEXT: "${promoSuccessText.replace(/"/g, '\\"')}",
   SHOW_QTY_BUTTONS: ${showQtyButtons},
   COD_ALWAYS_WHATSAPP: ${codAlwaysWhatsapp},
+  PIXEL_ID:     "${config.pixelId || ""}",
+  FB_ACCESS_TOKEN: "${config.fbAccessToken || ""}",
   API_BASE:     "https://api.scalev.id/v2",
 };
 
@@ -1311,6 +1313,8 @@ async function sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, pho
     event:     "order.created",
     unique_id: "event_browser_" + orderId,
     timestamp: new Date().toISOString(),
+    pixel_id:  CONFIG.PIXEL_ID,
+    fb_access_token: CONFIG.FB_ACCESS_TOKEN,
     data: {
       order_id:       orderId,
       payment_method: pm.id,
