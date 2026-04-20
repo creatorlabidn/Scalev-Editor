@@ -49,4 +49,16 @@ export interface FormState {
   submitButtonBgColor: string;
   submitButtonTextColor: string;
   showProductSection: boolean;
+  upsell: UpsellConfig;
+  sectionOrder: string[];
+}
+
+export interface UpsellConfig {
+  enabled: boolean;
+  type: 'product' | 'bundle';
+  targetId: string;
+  title: string;
+  description: string;
+  autoCheck: boolean;
+  lineHeight?: number;
 }

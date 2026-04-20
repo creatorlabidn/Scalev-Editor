@@ -2,7 +2,7 @@ import { FormState } from "../types";
 import { STATIC_CAPI_WEBHOOK } from "../constants";
 
 export function generateHTML(state: FormState): string {
-  const { config, payments, fields, productMode, specificVariantIds, specificBundleIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons, submitButtonText, submitButtonBgColor, submitButtonTextColor, showProductSection } = state;
+  const { config, upsell, sectionOrder, payments, fields, productMode, specificVariantIds, specificBundleIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons, submitButtonText, submitButtonBgColor, submitButtonTextColor, showProductSection } = state;
 
   const fieldsHTML = fields.map(field => {
     if (field.type === 'location') {
@@ -296,6 +296,65 @@ export function generateHTML(state: FormState): string {
     to   { opacity: 1; transform: translateY(0); }
   }
   .notif-icon { font-size: 14px; flex-shrink: 0; }
+  
+  .upsell-card {
+    border: 2px dashed #ff4d4d;
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    background: #fff9f9;
+  }
+  .upsell-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    background: #FFD54F;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+  }
+  .upsell-toggle:active { transform: scale(0.98); }
+  .upsell-toggle input { display: none; }
+  .upsell-arrow {
+    font-size: 20px;
+    color: #E65100;
+  }
+  .upsell-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+  .upsell-switch input { opacity: 0; width: 0; height: 0; }
+  .upsell-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #BDBDBD;
+    transition: .3s;
+    border-radius: 24px;
+  }
+  .upsell-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+  }
+  .upsell-switch input:checked + .upsell-slider { background-color: #546E7A; }
+  .upsell-switch input:checked + .upsell-slider:before { transform: translateX(22px); }
+  .upsell-title { font-weight: 700; font-size: 14px; color: #111; flex: 1; min-width: 0; word-break: normal; overflow-wrap: break-word; }
+  .upsell-title p { margin: 0; display: inline; }
+  .upsell-desc { font-size: 13px; margin-top: 10px; line-height: ${upsell.lineHeight || 1.5}; color: #111; word-break: normal; overflow-wrap: break-word; }
+  .upsell-desc p { margin-bottom: 0.5rem; }
+  .upsell-desc p:last-child { margin-bottom: 0; }
 
   .field { margin-bottom: 10px; }
   .field label { font-size: 12px; font-weight: 500; color: var(--gray-text); display: block; margin-bottom: 5px; }
@@ -327,9 +386,13 @@ export function generateHTML(state: FormState): string {
 
   .summary-card { background: var(--white); border: 1.5px solid var(--green); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1rem; }
   .summary-title { font-size: 11px; font-weight: 600; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.07em; text-decoration: underline; margin-bottom: 10px; }
-  .summary-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--text); padding: 5px 0; border-bottom: 1px solid var(--gray-border); }
+  .summary-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--text); padding: 7px 0; border-bottom: 1px solid var(--gray-border); align-items: flex-start; }
   .summary-row:last-of-type { border-bottom: none; }
-  .summary-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 600; color: var(--text); margin-top: 10px; padding-top: 10px; border-top: 1.5px solid var(--gray-border); }
+  .summary-label { flex: 1; min-width: 0; line-height: 1.4; word-break: normal; overflow-wrap: break-word; }
+  .summary-value { flex-shrink: 0; text-align: right; font-weight: 500; white-space: nowrap; }
+  .summary-total { display: flex; justify-content: space-between; gap: 12px; font-size: 16px; font-weight: 700; color: var(--text); margin-top: 10px; padding-top: 10px; border-top: 1.5px solid var(--gray-border); }
+  .summary-total .summary-label { font-size: 16px; }
+  .summary-total .summary-value { font-size: 18px; color: var(--text); }
 
   .btn-order { width: 100%; padding: 15px; background: ${submitButtonBgColor}; color: ${submitButtonTextColor}; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.15s, transform 0.1s; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem; }
   .btn-order:hover { opacity: 0.9; }
@@ -382,43 +445,66 @@ export function generateHTML(state: FormState): string {
 
 <div class="container">
 
-  ${showProductSection ? `
-  <div class="card">
-    <div class="section-title">${productSectionTitle}</div>
-    <div id="variants-list">
-      <!-- Skeleton loading -->
-      <div class="skeleton skeleton-item"></div>
-      <div class="skeleton skeleton-item"></div>
-      <div class="skeleton skeleton-item"></div>
-    </div>
-  </div>` : ''}
-
-  <div class="card">
-    <div class="section-title">Lengkapi Data:</div>
-    ${fieldsHTML}
-  </div>
-
-  <div class="card">
-    <div class="section-title">Metode Pembayaran:</div>
-    <div id="payment-list"></div>
-  </div>
-
-  ${showCourier ? `
-  <div class="card hidden" id="courier-card">
-    <div class="section-title">Pilih Kurir:</div>
-    <div id="courier-list">
-      <div class="courier-hint">Pilih kecamatan dan produk terlebih dahulu</div>
-    </div>
-  </div>` : ''}
-
-  <div class="summary-card hidden" id="summary-card">
-    <div class="summary-title">Rincian Pesanan:</div>
-    <div id="summary-items"></div>
-    <div class="summary-total">
-      <span>Total</span>
-      <span id="summary-total-val">Rp 0</span>
-    </div>
-  </div>
+  ${(sectionOrder || ['products', 'fields', 'payments', 'courier', 'upsell', 'summary']).map(sectionId => {
+    switch (sectionId) {
+      case 'products':
+        return showProductSection ? `
+        <div class="card">
+          <div class="section-title">${productSectionTitle}</div>
+          <div id="variants-list">
+            <!-- Skeleton loading -->
+            <div class="skeleton skeleton-item"></div>
+            <div class="skeleton skeleton-item"></div>
+            <div class="skeleton skeleton-item"></div>
+          </div>
+        </div>` : '';
+      case 'fields':
+        return `
+        <div class="card">
+          <div class="section-title">Lengkapi Data:</div>
+          ${fieldsHTML}
+        </div>`;
+      case 'payments':
+        return `
+        <div class="card">
+          <div class="section-title">Metode Pembayaran:</div>
+          <div id="payment-list"></div>
+        </div>`;
+      case 'courier':
+        return showCourier ? `
+        <div class="card hidden" id="courier-card">
+          <div class="section-title">Pilih Kurir:</div>
+          <div id="courier-list">
+            <div class="courier-hint">Pilih kecamatan dan produk terlebih dahulu</div>
+          </div>
+        </div>` : '';
+      case 'upsell':
+        return upsell.enabled ? `
+        <div class="upsell-card" id="upsell-card">
+          <label class="upsell-toggle">
+            <div class="upsell-arrow">➔</div>
+            <div class="upsell-switch">
+              <input type="checkbox" id="upsell-checkbox" onchange="toggleUpsell()">
+              <span class="upsell-slider"></span>
+            </div>
+            <div class="upsell-title">${upsell.title}</div>
+          </label>
+          <div class="upsell-desc">${upsell.description}</div>
+        </div>` : '';
+      case 'summary':
+        return `
+        <div class="summary-card hidden" id="summary-card">
+          <div class="summary-title">Rincian Pesanan:</div>
+          <div id="summary-items"></div>
+          <div class="summary-total">
+            <span class="summary-label">Total</span>
+            <span class="summary-value" id="summary-total-val">Rp 0</span>
+          </div>
+        </div>`;
+      default:
+        return '';
+    }
+  }).join('\n')}
 
   <button class="btn-order" id="btn-order" onclick="submitOrder()">
     ${submitButtonText}
@@ -573,7 +659,69 @@ async function loadProductsFromAPI() {
 
     ${productsFilterLogic}
 
-    if (!VARIANTS.length) {
+    // Upsell Logic: Ensure upsell item is in VARIANTS but marked to skip rendering
+    const upsellId = "${upsell.targetId}";
+    const upsellType = "${upsell.type}";
+    if (upsellId && "${upsell.enabled}" === "true") {
+      let isPresent = VARIANTS.some(v => String(v.unique_id || v.variant_id) === upsellId);
+      if (!isPresent) {
+        if (upsellType === 'product') {
+          const item = variantMap[upsellId];
+          if (item) {
+            const { product, variant } = item;
+            const price = variant.price || variant.variant_price || variant.selling_price || product.price || product.selling_price || 0;
+            const weight = variant.weight || variant.variant_weight || product.weight || product.product_weight || 1;
+            const variantName = variant.name || variant.variant_name || "";
+            const productName = product.name || product.product_name || "";
+            const optionName = [variant.option1_value, variant.option2_value, variant.option3_value].filter(Boolean).join(" / ");
+            const displayName = variantName ? (variantName.toLowerCase().includes(productName.toLowerCase()) ? variantName : productName + " - " + variantName) : productName;
+            VARIANTS.push({
+              unique_id:  variant.unique_id || variant.variant_unique_id || "",
+              variant_id: variant.id || variant.variant_id || null,
+              name:       displayName,
+              product_name: productName,
+              option_name: optionName,
+              price:      Number(price),
+              weight:     Number(weight),
+              item_type:  product.item_type || "physical",
+              is_upsell_hidden: true
+            });
+          }
+        } else {
+          const bundle = bundleMap[upsellId];
+          if (bundle) {
+            const priceOption = bundle.bundle_price_options?.[0] || {};
+            const price = priceOption.price || 0;
+            const bundleLines = (bundle.bundlelines || []).map(line => ({
+              name: line.variant?.product_name || line.variant?.name || "Produk",
+              price: Number(line.variant?.price || 0),
+              quantity: line.quantity || 1,
+              variant_id: line.variant_id || line.variant?.id,
+              item_type: line.variant?.product?.item_type || "physical"
+            }));
+            VARIANTS.push({
+              unique_id:  priceOption.unique_id || "bundle_" + bundle.id,
+              variant_id: bundle.id,
+              name:       bundle.name,
+              product_name: bundle.name,
+              option_name: priceOption.name || "",
+              price:      Number(price),
+              bundle_lines: bundleLines,
+              weight:     bundle.weight_bump || 0,
+              is_bundle:  true,
+              is_upsell_hidden: true
+            });
+          }
+        }
+      } else {
+        // Mark existing variant as upsell hidden for the main list rendering
+        // but note that if it's already in the main list, maybe the user wants it in both?
+        // Usually upsell is a separate offer.
+        // Actually, let's NOT mark it as hidden if it's already in VARIANTS.
+      }
+    }
+
+    if (!VARIANTS.filter(v => !v.is_upsell_hidden).length) {
       if (listEl) listEl.innerHTML = '<div class="product-load-error">Tidak ada produk tersedia.<br><button class="retry-btn" onclick="loadProductsFromAPI()">Coba Lagi</button></div>';
       return;
     }
@@ -597,6 +745,14 @@ async function loadProductsFromAPI() {
       refreshCourierIfReady();
     }
 
+    if (${upsell.enabled && upsell.autoCheck}) {
+      const chk = document.getElementById("upsell-checkbox");
+      if (chk) {
+        chk.checked = true;
+        toggleUpsell();
+      }
+    }
+
   } catch (e) {
     if (listEl) listEl.innerHTML = '<div class="product-load-error">Gagal memuat produk: ' + (e.message || JSON.stringify(e)) + '<br><button class="retry-btn" onclick="loadProductsFromAPI()">Coba Lagi</button></div>';
   }
@@ -609,6 +765,7 @@ function renderVariants() {
   // Group variants by product
   const groups = [];
   VARIANTS.forEach((v, i) => {
+    if (v.is_upsell_hidden) return;
     let group = groups.find(g => g.name === v.product_name);
     if (!group) {
       group = { name: v.product_name, variants: [] };
@@ -823,6 +980,18 @@ function toggleVariant(i) {
   
   updateGroupState(i);
   updateAllVariantNotifs();
+  
+  // Sync upsell checkbox if this variant is the upsell target
+  const upsellId = "${upsell.targetId}";
+  const upsellChk = document.getElementById("upsell-checkbox");
+  if (upsellChk && String(VARIANTS[i].unique_id || VARIANTS[i].variant_id) === upsellId) {
+    upsellChk.checked = !!selectedVariants[i];
+  } else if (upsellChk && !allowMulti) {
+    // If multi-select is off and we picked something else, check if upsell is still selected
+    const upsellIdx = VARIANTS.findIndex(v => String(v.unique_id || v.variant_id) === upsellId);
+    upsellChk.checked = upsellIdx !== -1 && !!selectedVariants[upsellIdx];
+  }
+
   updateSummary();
   refreshCourierIfReady();
 }
@@ -879,35 +1048,63 @@ function updateSummary() {
       v.bundle_lines.forEach(line => {
         const lineTotal = line.price * line.quantity * q;
         bundleOriginalTotal += lineTotal;
-        rows += '<div class="summary-row"><span>' + line.name + ' (' + (line.quantity * q) + ' x ' + fmt(line.price) + ')</span><span>' + fmt(lineTotal) + '</span></div>';
+        rows += '<div class="summary-row"><span class="summary-label">' + line.name + ' (' + (line.quantity * q) + ' x ' + fmt(line.price) + ')</span><span class="summary-value">' + fmt(lineTotal) + '</span></div>';
       });
       
       const bundlePriceTotal = v.price * q;
       const discount = bundleOriginalTotal - bundlePriceTotal;
       if (discount > 0) {
-        rows += '<div class="summary-row"><span style="font-weight:600">Diskon Produk</span><span style="color:var(--green);font-weight:600">-' + fmt(discount) + '</span></div>';
+        rows += '<div class="summary-row"><span class="summary-label" style="font-weight:600">Diskon Produk</span><span class="summary-value" style="color:var(--green);font-weight:600">-' + fmt(discount) + '</span></div>';
       }
       total += bundlePriceTotal;
     } else {
       const sub = v.price * q;
       total += sub;
-      rows += '<div class="summary-row"><span>' + v.name + ' x' + q + '</span><span>' + fmt(sub) + '</span></div>';
+      rows += '<div class="summary-row"><span class="summary-label">' + v.name + ' x' + q + '</span><span class="summary-value">' + fmt(sub) + '</span></div>';
     }
   });
 
   if (isFree) {
-    rows += '<div class="summary-row"><span style="font-weight:600">' + "${promoBonusText.replace(/"/g, '\\"')}" + '</span><span style="color:var(--green);font-weight:600;">Gratis</span></div>';
+    rows += '<div class="summary-row"><span class="summary-label" style="font-weight:600">' + "${promoBonusText.replace(/"/g, '\\"')}" + '</span><span class="summary-value" style="color:var(--green);font-weight:600;">Gratis</span></div>';
   }
 
   if (selectedCourierIdx !== null && courierList[selectedCourierIdx]) {
     const c      = courierList[selectedCourierIdx];
     const ongkir = c.cost || c.shipping_cost || c.price || 0;
-    rows  += '<div class="summary-row"><span>Ongkos Kirim</span><span>' + fmt(ongkir) + '</span></div>';
+    rows  += '<div class="summary-row"><span class="summary-label">Ongkos Kirim</span><span class="summary-value">' + fmt(ongkir) + '</span></div>';
     total += ongkir;
   }
 
   items.innerHTML = rows;
   totalEl.textContent = fmt(total);
+}
+
+function toggleUpsell() {
+  const chk = document.getElementById("upsell-checkbox");
+  if (!chk) return;
+  
+  const upsellId = "${upsell.targetId}";
+  const idx = VARIANTS.findIndex(v => String(v.unique_id || v.variant_id) === upsellId);
+  
+  if (idx === -1) return;
+  
+  if (chk.checked) {
+    selectedVariants[idx] = 1;
+  } else {
+    delete selectedVariants[idx];
+  }
+
+  // Sync main list if visible
+  const mainChk = document.getElementById("vchk-" + idx);
+  const mainCard = document.getElementById("vcard-" + idx);
+  if (mainChk) mainChk.checked = chk.checked;
+  if (mainCard) {
+    if (chk.checked) mainCard.classList.add("selected");
+    else mainCard.classList.remove("selected");
+  }
+  
+  updateSummary();
+  refreshCourierIfReady();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -1392,8 +1589,28 @@ async function sendCapiToN8n(orderId, subtotal, ongkir, firstName, lastName, pho
   }
 }
 
-renderPayments();
-loadProductsFromAPI();
+// Retention scroll position
+window.addEventListener('scroll', function() {
+  sessionStorage.setItem('preview_scroll_y', window.scrollY);
+});
+
+async function init() {
+  renderPayments();
+  await loadProductsFromAPI();
+  
+  const savedScrollY = sessionStorage.getItem('preview_scroll_y');
+  if (savedScrollY) {
+    // Small timeout to allow browser to handle final layout recalculations
+    setTimeout(() => {
+      window.scrollTo({
+        top: parseInt(savedScrollY),
+        behavior: 'instant'
+      });
+    }, 50);
+  }
+}
+
+init();
 
 </script>
 </body>

@@ -54,5 +54,15 @@ export const DEFAULT_STATE: FormState = {
   submitButtonTextColor: "#ffffff",
   showProductSection: true,
   fields: AVAILABLE_FIELDS.filter(f => f.id !== 'f-note'),
-  payments: [...AVAILABLE_PAYMENTS]
+  payments: [...AVAILABLE_PAYMENTS],
+  upsell: {
+    enabled: false,
+    type: 'product',
+    targetId: '',
+    title: '<p><strong>Beli 2 Gratis 1 Botol</strong></p>',
+    description: '<p>Gratis 1 botol isi 10gr. <span style="color: rgb(220, 38, 38);"><strong>Promo terbatas tergantung stok yang tersedia!</strong></span></p>',
+    autoCheck: false,
+    lineHeight: 1.5,
+  },
+  sectionOrder: ['products', 'fields', 'payments', 'courier', 'upsell', 'summary'],
 };

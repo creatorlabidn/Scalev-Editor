@@ -24,15 +24,17 @@ import {
   X,
   LifeBuoy,
   MessageCircle,
-  ExternalLink
+  ExternalLink,
+  ArrowUpRight
 } from 'lucide-react';
 import { FormState, PaymentMethod, FormField } from '../types';
 import { DEFAULT_STATE, AVAILABLE_PAYMENTS, AVAILABLE_FIELDS, STATIC_CAPI_WEBHOOK } from '../constants';
 import { generateHTML } from '../lib/generator';
+import RichTextEditor from './RichTextEditor';
 
 export default function Editor() {
   const [state, setState] = useState<FormState>(DEFAULT_STATE);
-  const [activeTab, setActiveTab] = useState<'config' | 'products' | 'fields' | 'payments' | 'preview' | 'code' | 'support'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'products' | 'fields' | 'payments' | 'upsell' | 'preview' | 'code' | 'support'>('config');
   const [copied, setCopied] = useState(false);
   const [generatedHTML, setGeneratedHTML] = useState('');
   const [products, setProducts] = useState<any[]>([]);
@@ -53,7 +55,7 @@ export default function Editor() {
   }, [state]);
 
   useEffect(() => {
-    if (activeTab === 'products') {
+    if (activeTab === 'products' || activeTab === 'upsell') {
       fetchProducts();
       fetchBundles();
     }
@@ -258,15 +260,30 @@ export default function Editor() {
     setState(prev => ({ ...prev, specificBundleIds: newIds }));
   };
 
+  const moveSection = (sectionId: string, direction: 'up' | 'down') => {
+    const currentOrder = state.sectionOrder || ['products', 'fields', 'payments', 'courier', 'upsell', 'summary'];
+    const index = currentOrder.indexOf(sectionId);
+    if (index === -1) return;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentOrder.length) return;
+
+    const newOrder = [...currentOrder];
+    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
+    setState(prev => ({ ...prev, sectionOrder: newOrder }));
+  };
+
   const tabs = [
     { id: 'config', label: 'Config', icon: Settings },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'fields', label: 'Fields', icon: FileText },
     { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'preview', label: 'Preview', icon: Eye },
+    { id: 'upsell', label: 'Upsell', icon: ArrowUpRight },
     { id: 'code', label: 'Code', icon: Code },
     { id: 'support', label: 'Support', icon: LifeBuoy },
   ];
+
+  const showPreviewSidebar = ['products', 'fields', 'payments', 'upsell'].includes(activeTab);
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -317,9 +334,11 @@ export default function Editor() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8">
-        <AnimatePresence mode="wait">
+      {/* Main Content Area */}
+      <main className="flex-1 flex overflow-hidden">
+        {/* Editor Pane */}
+        <div className={`flex-1 overflow-y-auto p-8 transition-all duration-300 ${showPreviewSidebar ? 'bg-white' : ''}`}>
+          <AnimatePresence mode="wait">
           {activeTab === 'config' && (
             <motion.div 
               key="config"
@@ -450,7 +469,25 @@ export default function Editor() {
               exit={{ opacity: 0, y: -10 }}
               className="max-w-5xl mx-auto space-y-6"
             >
-              <SectionHeader title="Product Display" description="Choose which products to show on your form." />
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                  <button 
+                    onClick={() => moveSection('products', 'up')}
+                    className="p-1 hover:bg-white hover:text-emerald-600 rounded shadow-sm transition-all disabled:opacity-30"
+                    disabled={state.sectionOrder[0] === 'products'}
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button 
+                    onClick={() => moveSection('products', 'down')}
+                    className="p-1 hover:bg-white hover:text-emerald-600 rounded shadow-sm transition-all disabled:opacity-30"
+                    disabled={state.sectionOrder[state.sectionOrder.length - 1] === 'products'}
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <SectionHeader title="Product Display" description="Choose which products to show on your form." />
+              </div>
               
               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-8">
                 <div className="space-y-6">
@@ -1317,22 +1354,119 @@ export default function Editor() {
             </motion.div>
           )}
 
-          {activeTab === 'preview' && (
+          {activeTab === 'upsell' && (
             <motion.div 
-              key="preview"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="h-full flex flex-col gap-4"
+              key="upsell"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="space-y-8 pb-20"
             >
-              <SectionHeader title="Live Preview" description="See how your form looks with the current settings." />
-              <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden relative">
-                <iframe 
-                  srcDoc={generatedHTML}
-                  title="Preview"
-                  className="w-full h-full border-none"
-                />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                    <button 
+                      onClick={() => moveSection('upsell', 'up')}
+                      className="p-1 hover:bg-white hover:text-emerald-600 rounded shadow-sm transition-all disabled:opacity-30"
+                      disabled={state.sectionOrder[0] === 'upsell'}
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => moveSection('upsell', 'down')}
+                      className="p-1 hover:bg-white hover:text-emerald-600 rounded shadow-sm transition-all disabled:opacity-30"
+                      disabled={state.sectionOrder[state.sectionOrder.length - 1] === 'upsell'}
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <SectionHeader title="Upsell Configuration" description="Add a special offer that users can toggle with one click." />
+                </div>
+                <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm hover:border-emerald-200 transition-colors">
+                  <span className="text-sm font-bold text-gray-900 whitespace-nowrap">Enable Upsell</span>
+                  <button
+                    onClick={() => setState(prev => ({ ...prev, upsell: { ...prev.upsell, enabled: !prev.upsell.enabled } }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none ring-offset-2 focus:ring-2 focus:ring-emerald-500 ${
+                      state.upsell.enabled ? 'bg-emerald-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        state.upsell.enabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
+
+              {state.upsell.enabled && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="space-y-6"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Produk atau Bundel</label>
+                      <select 
+                        value={state.upsell.type}
+                        onChange={e => setState(prev => ({ ...prev, upsell: { ...prev.upsell, type: e.target.value as 'product' | 'bundle' } }))}
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                      >
+                        <option value="product">Produk</option>
+                        <option value="bundle">Bundel</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Pilih Item</label>
+                      <select 
+                        value={state.upsell.targetId}
+                        onChange={e => setState(prev => ({ ...prev, upsell: { ...prev.upsell, targetId: e.target.value } }))}
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                      >
+                        <option value="">Pilih...</option>
+                        {state.upsell.type === 'product' ? (
+                          products.flatMap(p => (p.variants || p.product_variants || []).map((v: any) => (
+                            <option key={v.unique_id || v.id} value={v.unique_id || v.id}>
+                              {p.name} - {v.name || 'Default'}
+                            </option>
+                          )))
+                        ) : (
+                          bundles.map(b => (
+                            <option key={b.id} value={b.id}>
+                              {b.name}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
+                  <RichTextEditor 
+                    label="Teks Kustom Pada Upsell" 
+                    value={state.upsell.title} 
+                    onChange={v => setState(prev => ({ ...prev, upsell: { ...prev.upsell, title: v } }))} 
+                    placeholder="Contoh: Beli 2 Gratis 1 Botol"
+                  />
+
+                  <RichTextEditor 
+                    label="Deskripsi" 
+                    value={state.upsell.description} 
+                    onChange={v => setState(prev => ({ ...prev, upsell: { ...prev.upsell, description: v } }))} 
+                    placeholder="Masukkan detail penawaran..."
+                    lineHeight={state.upsell.lineHeight}
+                    onLineHeightChange={v => setState(prev => ({ ...prev, upsell: { ...prev.upsell, lineHeight: v } }))}
+                  />
+
+                  <Toggle 
+                    label="Auto Centang Upsell" 
+                    checked={state.upsell.autoCheck} 
+                    onChange={v => setState(prev => ({ ...prev, upsell: { ...prev.upsell, autoCheck: v } }))} 
+                    description="Automatically enable the offer when the page loads"
+                  />
+                </motion.div>
+              )}
             </motion.div>
           )}
 
@@ -1430,7 +1564,34 @@ export default function Editor() {
             </motion.div>
           )}
         </AnimatePresence>
-      </main>
+      </div>
+
+      {showPreviewSidebar && (
+        <div className="w-[450px] border-l border-gray-200 bg-gray-50 flex flex-col">
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-emerald-50 rounded-lg text-emerald-600">
+                <Eye className="w-4 h-4" />
+              </div>
+              <p className="text-xs font-bold text-gray-900 uppercase tracking-widest">Live Preview</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Active</span>
+            </div>
+          </div>
+          <div className="flex-1 p-6">
+            <div className="h-full bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden relative">
+              <iframe 
+                srcDoc={generatedHTML}
+                title="Preview"
+                className="w-full h-full border-none"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
 
       {/* Floating Warning Notification */}
       <AnimatePresence>
