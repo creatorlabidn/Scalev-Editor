@@ -19,6 +19,7 @@ import {
   ArrowUp,
   ArrowDown,
   Search,
+  List,
   Loader2,
   GripVertical,
   X,
@@ -279,11 +280,12 @@ export default function Editor() {
     { id: 'fields', label: 'Fields', icon: FileText },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'upsell', label: 'Upsell', icon: ArrowUpRight },
+    { id: 'summary', label: 'Summary', icon: List },
     { id: 'code', label: 'Code', icon: Code },
     { id: 'support', label: 'Support', icon: LifeBuoy },
   ];
 
-  const showPreviewSidebar = ['products', 'fields', 'payments', 'upsell'].includes(activeTab);
+  const showPreviewSidebar = ['products', 'fields', 'payments', 'upsell', 'summary'].includes(activeTab);
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -494,48 +496,47 @@ export default function Editor() {
                   <div className="flex items-center justify-between border-b border-gray-50 pb-4">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">General Settings</p>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Toggle 
-                      label="Show Product Section" 
-                      description="Display product selection on the form"
-                      checked={state.showProductSection} 
-                      onChange={v => setState(prev => ({ ...prev, showProductSection: v }))} 
-                    />
-                    <div className="opacity-0 pointer-events-none" />
+
+                  <div className="space-y-6">
                     <InputGroup 
                       label="Product Section Title" 
                       value={state.productSectionTitle} 
                       onChange={v => setState(prev => ({ ...prev, productSectionTitle: v }))} 
                       placeholder="e.g. Pilih Isi" 
                     />
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Toggle 
-                      label="Auto-select First Product" 
-                      description="Automatically select the first item on load"
-                      checked={state.autoSelectFirst} 
-                      onChange={v => setState(prev => ({ ...prev, autoSelectFirst: v }))} 
-                    />
-                    <Toggle 
-                      label="Show Quantity Buttons" 
-                      description="Enable customers to adjust product quantity"
-                      checked={state.showQtyButtons} 
-                      onChange={v => setState(prev => ({ ...prev, showQtyButtons: v }))} 
-                    />
-                    <Toggle 
-                      label="Allow Multiple Selection" 
-                      description="Let customers pick more than one product"
-                      checked={state.allowMultiSelect} 
-                      onChange={v => setState(prev => ({ ...prev, allowMultiSelect: v }))} 
-                    />
-                    <Toggle 
-                      label="Show Promo Badge" 
-                      description="Show notification"
-                      checked={state.showPromoBadge} 
-                      onChange={v => setState(prev => ({ ...prev, showPromoBadge: v }))} 
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Toggle 
+                        label="Show Product Section" 
+                        description="Display product selection on the form"
+                        checked={state.showProductSection} 
+                        onChange={v => setState(prev => ({ ...prev, showProductSection: v }))} 
+                      />
+                      <Toggle 
+                        label="Auto-select First Product" 
+                        description="Automatically select the first item on load"
+                        checked={state.autoSelectFirst} 
+                        onChange={v => setState(prev => ({ ...prev, autoSelectFirst: v }))} 
+                      />
+                      <Toggle 
+                        label="Show Quantity Buttons" 
+                        description="Enable customers to adjust product quantity"
+                        checked={state.showQtyButtons} 
+                        onChange={v => setState(prev => ({ ...prev, showQtyButtons: v }))} 
+                      />
+                      <Toggle 
+                        label="Allow Multiple Selection" 
+                        description="Let customers pick more than one product"
+                        checked={state.allowMultiSelect} 
+                        onChange={v => setState(prev => ({ ...prev, allowMultiSelect: v }))} 
+                      />
+                      <Toggle 
+                        label="Show Promo Badge" 
+                        description="Show notification"
+                        checked={state.showPromoBadge} 
+                        onChange={v => setState(prev => ({ ...prev, showPromoBadge: v }))} 
+                      />
+                    </div>
                   </div>
 
                   <AnimatePresence>
@@ -560,14 +561,6 @@ export default function Editor() {
                             onChange={v => setState(prev => ({ ...prev, promoSuccessText: v }))} 
                             placeholder="e.g. Yeeyy... Kamu dapat Gratis 1 Botol" 
                           />
-                          <div className="md:col-span-2">
-                            <InputGroup 
-                              label="Bonus Item Text (Summary)" 
-                              value={state.promoBonusText} 
-                              onChange={v => setState(prev => ({ ...prev, promoBonusText: v }))} 
-                              placeholder="e.g. Gratis 1 Botol 🎁" 
-                            />
-                          </div>
                         </div>
                       </motion.div>
                     )}
@@ -1465,6 +1458,73 @@ export default function Editor() {
                     onChange={v => setState(prev => ({ ...prev, upsell: { ...prev.upsell, autoCheck: v } }))} 
                     description="Automatically enable the offer when the page loads"
                   />
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'summary' && (
+            <motion.div 
+              key="summary"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="space-y-8 pb-20"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                    <button 
+                      onClick={() => moveSection('summary', 'up')}
+                      className="p-1 hover:bg-white hover:text-emerald-600 rounded shadow-sm transition-all disabled:opacity-30"
+                      disabled={state.sectionOrder[0] === 'summary'}
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => moveSection('summary', 'down')}
+                      className="p-1 hover:bg-white hover:text-emerald-600 rounded shadow-sm transition-all disabled:opacity-30"
+                      disabled={state.sectionOrder[state.sectionOrder.length - 1] === 'summary'}
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <SectionHeader title="Summary Configuration" description="Customize how the order summary appears." />
+                </div>
+                <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm hover:border-emerald-200 transition-colors">
+                  <span className="text-sm font-bold text-gray-900 whitespace-nowrap">Show Summary Section</span>
+                  <button
+                    onClick={() => setState(prev => ({ ...prev, showSummarySection: !prev.showSummarySection }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none ring-offset-2 focus:ring-2 focus:ring-emerald-500 ${
+                      state.showSummarySection ? 'bg-emerald-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        state.showSummarySection ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {state.showSummarySection && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="space-y-6"
+                >
+                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+                    <InputGroup 
+                      label="Bonus Item Label (Summary)" 
+                      value={state.promoBonusText} 
+                      onChange={v => setState(prev => ({ ...prev, promoBonusText: v }))} 
+                      placeholder="e.g. Gratis 1 Botol 🎁" 
+                    />
+                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                      This text appears in the summary when a customer qualifies for a bonus.
+                    </p>
+                  </div>
                 </motion.div>
               )}
             </motion.div>

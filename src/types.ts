@@ -49,6 +49,7 @@ export interface FormState {
   submitButtonBgColor: string;
   submitButtonTextColor: string;
   showProductSection: boolean;
+  showSummarySection: boolean;
   upsell: UpsellConfig;
   sectionOrder: string[];
 }

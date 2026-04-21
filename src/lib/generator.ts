@@ -2,7 +2,7 @@ import { FormState } from "../types";
 import { STATIC_CAPI_WEBHOOK } from "../constants";
 
 export function generateHTML(state: FormState): string {
-  const { config, upsell, sectionOrder, payments, fields, productMode, specificVariantIds, specificBundleIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons, submitButtonText, submitButtonBgColor, submitButtonTextColor, showProductSection } = state;
+  const { config, upsell, sectionOrder, payments, fields, productMode, specificVariantIds, specificBundleIds, autoSelectFirst, allowMultiSelect, productSectionTitle, showCourier, showPromoBadge, promoUpsellText, promoSuccessText, promoBonusText, codAlwaysWhatsapp, afterOrderAction, customRedirectUrl, showQtyButtons, submitButtonText, submitButtonBgColor, submitButtonTextColor, showProductSection, showSummarySection } = state;
 
   const fieldsHTML = fields.map(field => {
     if (field.type === 'location') {
@@ -492,7 +492,7 @@ export function generateHTML(state: FormState): string {
           <div class="upsell-desc">${upsell.description}</div>
         </div>` : '';
       case 'summary':
-        return `
+        return showSummarySection ? `
         <div class="summary-card hidden" id="summary-card">
           <div class="summary-title">Rincian Pesanan:</div>
           <div id="summary-items"></div>
@@ -500,7 +500,7 @@ export function generateHTML(state: FormState): string {
             <span class="summary-label">Total</span>
             <span class="summary-value" id="summary-total-val">Rp 0</span>
           </div>
-        </div>`;
+        </div>` : '';
       default:
         return '';
     }

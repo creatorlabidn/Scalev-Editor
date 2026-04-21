@@ -53,6 +53,7 @@ export const DEFAULT_STATE: FormState = {
   submitButtonBgColor: "#1D9E75",
   submitButtonTextColor: "#ffffff",
   showProductSection: true,
+  showSummarySection: true,
   fields: AVAILABLE_FIELDS.filter(f => f.id !== 'f-note'),
   payments: [...AVAILABLE_PAYMENTS],
   upsell: {
